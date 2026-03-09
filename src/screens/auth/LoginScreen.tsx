@@ -13,6 +13,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 import { useAuthStore } from "../../store/useAuthStore";
+import { extractApiErrorMessage } from "../../utils/apiError";
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -35,9 +36,10 @@ export default function LoginScreen() {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ??
-        "Credenciales incorrectas. Intenta de nuevo.";
+      const msg = extractApiErrorMessage(
+        err,
+        "Credenciales incorrectas. Intenta de nuevo.",
+      );
       Toast.show({ type: "error", text1: "Error de acceso", text2: msg });
     } finally {
       setLoading(false);

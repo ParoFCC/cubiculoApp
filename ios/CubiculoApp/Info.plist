@@ -50,5 +50,16 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>La app usa la cámara para escanear el QR del estudiante.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.cubiculoapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cubiculoapp</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

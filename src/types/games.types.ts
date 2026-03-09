@@ -14,13 +14,17 @@ export type LoanStatus = "active" | "returned" | "overdue";
 
 export interface GameLoan {
   id: string;
-  game: Game;
+  game_id: string;
+  game_name: string;
   student_id: string;
+  student_name: string;
   admin_id: string;
+  admin_name: string;
   borrowed_at: string;
   due_at?: string;
   returned_at?: string;
   status: LoanStatus;
+  pieces_complete: boolean;
 }
 
 export interface RequestLoanPayload {

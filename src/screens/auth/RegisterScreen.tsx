@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import * as React from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import { authService } from "../../services/authService";
+import { extractApiErrorMessage } from "../../utils/apiError";
 
 const PURPLE = "#5C35D9";
 
@@ -46,7 +47,7 @@ type Field =
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
-  const [form, setForm] = useState<Record<Field, string>>({
+  const [form, setForm] = React.useState<Record<Field, string>>({
     nombres: "",
     apPaterno: "",
     apMaterno: "",
@@ -55,10 +56,10 @@ export default function RegisterScreen() {
     password: "",
     confirmPassword: "",
   });
-  const [emailIsAuto, setEmailIsAuto] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [emailIsAuto, setEmailIsAuto] = React.useState(true);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirm, setShowConfirm] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
 
   const set = (key: Field) => (v: string) =>
     setForm((f) => ({ ...f, [key]: v }));
@@ -218,7 +219,7 @@ export default function RegisterScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo enviar el código.",
+        text2: extractApiErrorMessage(err, "No se pudo enviar el código."),
       });
     } finally {
       setLoading(false);

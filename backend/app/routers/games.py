@@ -33,7 +33,8 @@ async def list_loans(
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.list_loans(db, cubiculo_id)
+    loans = await svc.list_loans(db, cubiculo_id)
+    return [LoanOut.from_orm_with_names(item) for item in loans]
 
 
 @router.get("/{game_id}", response_model=GameOut)
@@ -76,7 +77,8 @@ async def register_loan(
     admin: User = Depends(require_admin),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.register_loan(db, payload, admin, cubiculo_id)
+    loan = await svc.register_loan(db, payload, admin, cubiculo_id)
+    return LoanOut.from_orm_with_names(loan)
 
 
 @router.patch("/loans/{loan_id}/return", response_model=LoanOut)
@@ -85,7 +87,8 @@ async def register_return(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    return await svc.register_return(db, loan_id)
+    loan = await svc.register_return(db, loan_id)
+    return LoanOut.from_orm_with_names(loan)
 
 
 @router.post("/loans/request", status_code=status.HTTP_202_ACCEPTED)

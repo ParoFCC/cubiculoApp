@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import * as React from "react";
 import {
   View,
   Text,
@@ -14,20 +14,20 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { authService } from "../../services/authService";
 import { storage } from "../../utils/storage";
 import { useAuthStore } from "../../store/useAuthStore";
+import { extractApiErrorMessage } from "../../utils/apiError";
 
 export default function VerifyEmailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { name, email, password, student_id, period } = route.params;
 
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-  const inputs = useRef<TextInput[]>([]);
-  const setUser = useAuthStore((s) => s.login);
+  const [code, setCode] = React.useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = React.useState(false);
+  const [resending, setResending] = React.useState(false);
+  const [countdown, setCountdown] = React.useState(60);
+  const inputs = React.useRef<TextInput[]>([]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
@@ -73,7 +73,7 @@ export default function VerifyEmailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "Código incorrecto o expirado.",
+        text2: extractApiErrorMessage(err, "Código incorrecto o expirado."),
       });
       setCode(["", "", "", "", "", ""]);
       inputs.current[0]?.focus();
@@ -96,7 +96,7 @@ export default function VerifyEmailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo reenviar.",
+        text2: extractApiErrorMessage(err, "No se pudo reenviar."),
       });
     } finally {
       setResending(false);

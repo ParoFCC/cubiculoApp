@@ -40,6 +40,26 @@ async def create_product(
     return await svc.create_product(db, payload, cubiculo_id)
 
 
+@router.delete("/products", status_code=status.HTTP_200_OK,
+               dependencies=[Depends(require_admin)])
+async def delete_all_products(
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    count = await svc.delete_all_products(db, cubiculo_id)
+    return {"deleted": count}
+
+
+@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_admin)])
+async def delete_product(
+    product_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    await svc.delete_product(db, product_id, cubiculo_id)
+
+
 @router.patch("/products/{product_id}", response_model=ProductOut)
 async def update_product(
     product_id: uuid.UUID,
@@ -60,7 +80,8 @@ async def register_sale(
     admin: User = Depends(require_admin),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.register_sale(db, payload, admin, cubiculo_id)
+    sale = await svc.register_sale(db, payload, admin, cubiculo_id)
+    return SaleOut.from_orm_with_names(sale)
 
 
 @router.get("/sales", response_model=list[SaleOut],
@@ -71,7 +92,8 @@ async def list_sales(
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.list_sales(db, cubiculo_id, from_date, to_date)
+    sales = await svc.list_sales(db, cubiculo_id, from_date, to_date)
+    return [SaleOut.from_orm_with_names(item) for item in sales]
 
 
 # ── Cash Register ──────────────────────────────────────────────────────────
@@ -95,6 +117,15 @@ async def close_cash_register(
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
     return await svc.close_cash_register(db, payload, cubiculo_id)
+
+
+@router.get("/cash-register/history", response_model=list[CashRegisterOut],
+            dependencies=[Depends(require_admin)])
+async def get_cash_register_history(
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    return await svc.get_cash_register_history(db, cubiculo_id)
 
 
 @router.get("/cash-register", response_model=CashRegisterOut,

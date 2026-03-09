@@ -11,8 +11,10 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 import { gamesService } from "../../../services/gamesService";
 import { Game } from "../../../types/games.types";
+import QRScannerModal from "../../../components/QRScannerModal";
 
 const PURPLE = "#5C35D9";
 
@@ -31,6 +33,22 @@ export default function GameCatalogScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+
+  const handleQRScan = (value: string) => {
+    setShowScanner(false);
+    const id = value.trim();
+    const game = games.find((g) => g.id === id);
+    if (!game) {
+      Toast.show({
+        type: "error",
+        text1: "Juego no encontrado",
+        text2: "El código QR no corresponde a ningún juego.",
+      });
+      return;
+    }
+    navigation.navigate("GameDetail", { game });
+  };
 
   const fetchGames = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -85,7 +103,20 @@ export default function GameCatalogScreen() {
             />
           </TouchableOpacity>
         ) : null}
+        <TouchableOpacity
+          style={styles.qrScanBtn}
+          onPress={() => setShowScanner(true)}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <MaterialCommunityIcons name="qrcode-scan" size={20} color={PURPLE} />
+        </TouchableOpacity>
       </View>
+
+      <QRScannerModal
+        visible={showScanner}
+        onScan={handleQRScan}
+        onClose={() => setShowScanner(false)}
+      />
 
       <FlatList
         data={filtered}
@@ -188,6 +219,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 14, color: "#1a1a2e", padding: 0 },
+  qrScanBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: "#EEE9FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   count: {
     fontSize: 12,
     color: "#9ca3af",

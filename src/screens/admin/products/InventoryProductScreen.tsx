@@ -10,23 +10,33 @@ import {
   Modal,
   RefreshControl,
   ScrollView,
+  Alert,
+  Image,
 } from "react-native";
 import Toast from "react-native-toast-message";
+import DocumentPicker from "react-native-document-picker";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { productsService } from "../../../services/productsService";
+import { uploadService } from "../../../services/uploadService";
 import { Product } from "../../../types/products.types";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
-export default function InventoryProductScreen() {
+type Props = { navigation: any };
+
+export default function InventoryProductScreen({ navigation }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
     price: "",
     stock: "",
     category: "otro",
+    image_url: "",
   });
 
   const fetchProducts = useCallback(async (quiet = false) => {
@@ -45,6 +55,60 @@ export default function InventoryProductScreen() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const handleDelete = (item: Product) => {
+    Alert.alert(
+      "Eliminar producto",
+      `¿Eliminar “${item.name}”? Esta acción no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await productsService.deleteProduct(item.id);
+              Toast.show({ type: "success", text1: "Producto eliminado", text2: item.name });
+              fetchProducts(true);
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: extractApiErrorMessage(err, "No se pudo eliminar."),
+              });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.images],
+        copyTo: "cachesDirectory",
+      });
+      setUploading(true);
+      const url = await uploadService.uploadFile(
+        result.fileCopyUri ?? result.uri,
+        result.name ?? "product.jpg",
+        result.type ?? "image/jpeg",
+      );
+      setForm((f) => ({ ...f, image_url: url }));
+      Toast.show({ type: "success", text1: "Imagen subida" });
+    } catch (err: any) {
+      if (!DocumentPicker.isCancel(err)) {
+        Toast.show({
+          type: "error",
+          text1: "Error al subir imagen",
+          text2: extractApiErrorMessage(err, "No se pudo subir la imagen."),
+        });
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!form.name.trim() || !form.price || !form.stock) {
@@ -80,9 +144,10 @@ export default function InventoryProductScreen() {
         price,
         stock,
         category: form.category,
+        image_url: form.image_url || undefined,
         is_active: true,
       });
-      setForm({ name: "", price: "", stock: "", category: "otro" });
+      setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
       setShowModal(false);
       fetchProducts();
       Toast.show({
@@ -94,7 +159,7 @@ export default function InventoryProductScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo crear el producto.",
+        text2: extractApiErrorMessage(err, "No se pudo crear el producto."),
       });
     } finally {
       setSaving(false);
@@ -122,6 +187,38 @@ export default function InventoryProductScreen() {
 
   return (
     <View style={styles.root}>
+      {/* Quick actions 2×2 grid */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity
+          style={[styles.qaCard, styles.qaCardPrimary]}
+          onPress={() => setShowModal(true)}
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={24} color="#fff" />
+          <Text style={styles.qaCardTextPrimary}>Agregar{"\n"}Producto</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.qaCard}
+          onPress={() => navigation.navigate("RegisterSale")}
+        >
+          <MaterialCommunityIcons name="cart-plus" size={24} color={PURPLE} />
+          <Text style={styles.qaCardText}>Registrar{"\n"}Venta</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.qaCard}
+          onPress={() => navigation.navigate("CashRegister")}
+        >
+          <MaterialCommunityIcons name="cash-register" size={24} color={PURPLE} />
+          <Text style={styles.qaCardText}>Abrir{"\n"}Caja</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.qaCard}
+          onPress={() => navigation.navigate("SalesReport")}
+        >
+          <MaterialCommunityIcons name="chart-bar" size={24} color={PURPLE} />
+          <Text style={styles.qaCardText}>Ver{"\n"}Reportes</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={products}
         keyExtractor={(p) => p.id}
@@ -136,20 +233,29 @@ export default function InventoryProductScreen() {
             colors={[PURPLE]}
           />
         }
-        ListFooterComponent={
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setShowModal(true)}
-          >
-            <Text style={styles.addBtnText}>+ Agregar Producto</Text>
-          </TouchableOpacity>
-        }
         ListEmptyComponent={
-          <Text style={styles.empty}>Sin productos registrados.</Text>
+          <View style={styles.emptyWrap}>
+            <MaterialCommunityIcons name="package-variant-closed" size={56} color="#d1d5db" />
+            <Text style={styles.empty}>Sin productos registrados</Text>
+            <TouchableOpacity
+              style={styles.emptyAddBtn}
+              onPress={() => setShowModal(true)}
+            >
+              <Text style={styles.emptyAddBtnText}>+ Agregar primer producto</Text>
+            </TouchableOpacity>
+          </View>
         }
         renderItem={({ item }) => (
           <View style={[styles.card, !item.is_active && styles.inactiveCard]}>
-            <Text style={styles.emoji}>{categoryEmoji(item.category)}</Text>
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.emoji}>{categoryEmoji(item.category)}</Text>
+            )}
             <View style={styles.info}>
               <Text style={styles.productName}>{item.name}</Text>
               <Text style={styles.category}>{item.category}</Text>
@@ -217,6 +323,24 @@ export default function InventoryProductScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            {/* Image */}
+            <TouchableOpacity
+              style={styles.imagePickerBtn}
+              onPress={handlePickImage}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color={PURPLE} />
+              ) : form.image_url ? (
+                <Image
+                  source={{ uri: form.image_url }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={styles.imagePickerText}>📷 Agregar imagen (opcional)</Text>
+              )}
+            </TouchableOpacity>
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -249,7 +373,54 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8F7FF" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   list: { padding: 14 },
-  empty: { textAlign: "center", color: "#999", marginTop: 40 },
+  emptyWrap: { alignItems: "center", marginTop: 48, gap: 12 },
+  empty: { textAlign: "center", color: "#9ca3af", fontSize: 14 },
+  emptyAddBtn: {
+    backgroundColor: PURPLE,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    marginTop: 4,
+  },
+  emptyAddBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  quickActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#F8F7FF",
+  },
+  qaCard: {
+    width: "47.5%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    gap: 8,
+    elevation: 2,
+    shadowColor: "#5C35D9",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: "#F0EEFF",
+  },
+  qaCardPrimary: { backgroundColor: PURPLE, borderColor: PURPLE },
+  qaCardText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: PURPLE,
+    textAlign: "center",
+    lineHeight: 17,
+  },
+  qaCardTextPrimary: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#fff",
+    textAlign: "center",
+    lineHeight: 17,
+  },
   card: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -261,6 +432,7 @@ const styles = StyleSheet.create({
   },
   inactiveCard: { opacity: 0.55 },
   emoji: { fontSize: 30, marginRight: 12 },
+  productImage: { width: 46, height: 46, borderRadius: 10, marginRight: 12 },
   info: { flex: 1 },
   productName: { fontSize: 15, fontWeight: "700", color: "#222" },
   category: {
@@ -281,15 +453,18 @@ const styles = StyleSheet.create({
   lowStock: { backgroundColor: "#FFEBEE" },
   stockText: { fontSize: 12, fontWeight: "600", color: "#444" },
   inactive: { fontSize: 11, color: "#999", marginTop: 4 },
-  addBtn: {
-    backgroundColor: PURPLE,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    margin: 4,
-    marginTop: 8,
+  trashBtn: {
+    marginLeft: 10,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#FEF2F2",
   },
-  addBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  trashBtn: {
+    marginLeft: 10,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#FEF2F2",
+  },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -331,6 +506,19 @@ const styles = StyleSheet.create({
   catChipActive: { backgroundColor: PURPLE, borderColor: PURPLE },
   catChipText: { fontSize: 13, color: "#555" },
   catChipTextActive: { color: "#fff", fontWeight: "700" },
+  imagePickerBtn: {
+    borderWidth: 1.5,
+    borderColor: "#ddd",
+    borderStyle: "dashed",
+    borderRadius: 10,
+    height: 90,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  imagePickerText: { fontSize: 14, color: "#999" },
+  imagePreview: { width: "100%", height: "100%" },
   modalActions: { flexDirection: "row", gap: 10 },
   cancelBtn: {
     flex: 1,

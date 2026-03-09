@@ -8,6 +8,7 @@ from pydantic import BaseModel, field_validator
 class ProductCreate(BaseModel):
     name: str
     category: str | None = None
+    image_url: str | None = None
     price: float
     stock: int = 0
 
@@ -29,6 +30,7 @@ class ProductCreate(BaseModel):
 class ProductUpdate(BaseModel):
     name: str | None = None
     category: str | None = None
+    image_url: str | None = None
     price: float | None = None
     stock: int | None = None
     is_active: bool | None = None
@@ -38,6 +40,7 @@ class ProductOut(BaseModel):
     id: uuid.UUID
     name: str
     category: str | None
+    image_url: str | None
     price: float
     stock: int
     is_active: bool
@@ -64,6 +67,14 @@ class SaleCreate(BaseModel):
     student_id: str | None = None  # Institutional student ID (optional)
     items: list[SaleItemIn]
 
+    @field_validator("student_id")
+    @classmethod
+    def normalize_student_id(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        value = v.strip().lower()
+        return value or None
+
     @field_validator("items")
     @classmethod
     def items_not_empty(cls, v: list) -> list:
@@ -84,11 +95,27 @@ class SaleItemOut(BaseModel):
 class SaleOut(BaseModel):
     id: uuid.UUID
     admin_id: uuid.UUID
-    student_id: uuid.UUID | None
+    admin_name: str = ""
+    student_id: str | None
+    student_name: str = ""
     total: float
     sold_at: datetime
+    items: list[SaleItemOut] = []
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_names(cls, obj):
+        return cls(
+            id=obj.id,
+            admin_id=obj.admin_id,
+            admin_name=getattr(obj, "admin_name", "") or "",
+            student_id=getattr(obj, "student_identifier", None),
+            student_name=getattr(obj, "student_name", "") or "",
+            total=float(obj.total),
+            sold_at=obj.sold_at,
+            items=list(getattr(obj, "items", []) or []),
+        )
 
 
 # ── Cash Register ─────────────────────────────────────────────────────────
@@ -123,5 +150,6 @@ class CashRegisterOut(BaseModel):
     status: str
     opened_at: datetime
     closed_at: datetime | None
+    sales_total: float = 0.0
 
     model_config = {"from_attributes": True}

@@ -1,6 +1,7 @@
-import React from "react";
+import * as React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { BaseToast, ErrorToast, ToastConfig } from "react-native-toast-message";
+import { stringifyApiErrorDetail } from "../utils/apiError";
 
 const styles = StyleSheet.create({
   successBase: {
@@ -53,10 +54,17 @@ const styles = StyleSheet.create({
   infoContent: { flex: 1, paddingLeft: 10 },
 });
 
+const safeToastText = (value: unknown) => {
+  const text = stringifyApiErrorDetail(value);
+  return text || undefined;
+};
+
 const toastConfig: ToastConfig = {
   success: (props) => (
     <BaseToast
       {...props}
+      text1={safeToastText(props.text1)}
+      text2={safeToastText(props.text2)}
       style={styles.successBase}
       contentContainerStyle={{ paddingHorizontal: 16 }}
       text1Style={[styles.title, styles.successTitle]}
@@ -69,6 +77,8 @@ const toastConfig: ToastConfig = {
   error: (props) => (
     <ErrorToast
       {...props}
+      text1={safeToastText(props.text1)}
+      text2={safeToastText(props.text2)}
       style={styles.errorBase}
       contentContainerStyle={{ paddingHorizontal: 16 }}
       text1Style={[styles.title, styles.errorTitle]}
@@ -82,11 +92,11 @@ const toastConfig: ToastConfig = {
     <View style={[styles.infoBase, { marginHorizontal: 16 }]}>
       <View style={styles.infoRow}>
         <View style={styles.infoContent}>
-          {text1 ? (
-            <Text style={[styles.title, styles.infoTitle]}>{text1}</Text>
+          {safeToastText(text1) ? (
+            <Text style={[styles.title, styles.infoTitle]}>{safeToastText(text1)}</Text>
           ) : null}
-          {text2 ? (
-            <Text style={[styles.message, styles.infoMessage]}>{text2}</Text>
+          {safeToastText(text2) ? (
+            <Text style={[styles.message, styles.infoMessage]}>{safeToastText(text2)}</Text>
           ) : null}
         </View>
       </View>

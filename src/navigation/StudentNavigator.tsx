@@ -31,12 +31,29 @@ const headerStyle = {
   borderBottomColor: "#F0EEFF",
 };
 
-function LogoutButton() {
+function HeaderActions() {
   const logout = useAuthStore((s) => s.logout);
+  const clearCubiculo = useCubiculoStore((s) => s.clearCubiculo);
   return (
-    <TouchableOpacity onPress={logout} style={{ marginRight: 16, padding: 4 }}>
-      <MaterialCommunityIcons name="logout" size={22} color="#E53935" />
-    </TouchableOpacity>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginRight: 8,
+      }}
+    >
+      <TouchableOpacity onPress={clearCubiculo} style={{ padding: 4 }}>
+        <MaterialCommunityIcons
+          name="office-building-outline"
+          size={22}
+          color={PURPLE}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={logout} style={{ padding: 4 }}>
+        <MaterialCommunityIcons name="logout" size={22} color="#E53935" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -44,7 +61,7 @@ const sharedScreenOptions = {
   headerStyle,
   headerTintColor: "#1a1a2e",
   headerTitleStyle: { fontWeight: "700" as const, fontSize: 16 },
-  headerRight: () => <LogoutButton />,
+  headerRight: () => <HeaderActions />,
 };
 
 function GamesStack() {
@@ -101,6 +118,7 @@ function ProductsStack() {
 export default function StudentNavigator() {
   const cubiculo = useCubiculoStore((s) => s.selectedCubiculo);
   const logout = useAuthStore((s) => s.logout);
+  const clearCubiculo = useCubiculoStore((s) => s.clearCubiculo);
 
   const gamesOn = cubiculo?.games_enabled !== false;
   const printOn = cubiculo?.printing_enabled !== false;
@@ -112,6 +130,17 @@ export default function StudentNavigator() {
         <Text style={styles.noServicesText}>
           Este cubículo no tiene servicios activos para estudiantes.
         </Text>
+        <TouchableOpacity
+          onPress={clearCubiculo}
+          style={[
+            styles.logoutInline,
+            { backgroundColor: "#EEE9FF", marginBottom: 12 },
+          ]}
+        >
+          <Text style={[styles.logoutInlineText, { color: PURPLE }]}>
+            Cambiar cubículo
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={logout} style={styles.logoutInline}>
           <Text style={styles.logoutInlineText}>Cerrar sesión</Text>
         </TouchableOpacity>

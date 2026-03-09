@@ -8,18 +8,25 @@ import {
   ActivityIndicator,
   TextInput,
   RefreshControl,
+  Image,
 } from "react-native";
+import { useRoute } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { productsService } from "../../../services/productsService";
 import { usersService } from "../../../services/usersService";
-import { Product } from "../../../types/products.types";
+import { Product, CashRegister } from "../../../types/products.types";
 import { User } from "../../../types/auth.types";
-import QRScannerModal from "../../../components/QRScannerModal";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
 type CartItem = { product: Product; quantity: number };
 
-export default function RegisterSaleScreen() {
+type Props = { navigation: any };
+
+export default function RegisterSaleScreen({ navigation }: Props) {
+  const routeParams = useRoute<any>().params as
+    | { preselectedStudentId?: string; preselectedProductId?: string }
+    | undefined;
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +35,9 @@ export default function RegisterSaleScreen() {
   const [studentId, setStudentId] = useState("");
   const [studentInfo, setStudentInfo] = useState<User | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
-  const [showQR, setShowQR] = useState(false);
+  const [hasLookupResult, setHasLookupResult] = useState(false);
+  const [cashStatus, setCashStatus] = useState<CashRegister | null | "loading">("loading");
+  const [presetApplied, setPresetApplied] = useState(false);
 
   const fetchProducts = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -41,9 +50,37 @@ export default function RegisterSaleScreen() {
     }
   }, []);
 
+  const fetchCash = useCallback(async () => {
+    try {
+      const cash = await productsService.getCashRegisterStatus();
+      setCashStatus(cash);
+    } catch {
+      setCashStatus(null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchCash();
+  }, [fetchProducts, fetchCash]);
+
+  useEffect(() => {
+    if (routeParams?.preselectedStudentId) {
+      setStudentId(routeParams.preselectedStudentId);
+      lookupStudent(routeParams.preselectedStudentId);
+    }
+  }, [routeParams?.preselectedStudentId]);
+
+  useEffect(() => {
+    if (!routeParams?.preselectedProductId || presetApplied || products.length === 0) {
+      return;
+    }
+    const product = products.find((item) => item.id === routeParams.preselectedProductId);
+    if (product) {
+      addToCart(product);
+      setPresetApplied(true);
+    }
+  }, [routeParams?.preselectedProductId, presetApplied, products]);
 
   const cartTotal = cart.reduce(
     (sum, i) => sum + i.product.price * i.quantity,
@@ -51,26 +88,23 @@ export default function RegisterSaleScreen() {
   );
 
   const lookupStudent = async (id: string) => {
-    if (!id.trim()) {
+    const normalizedId = id.trim().toLowerCase();
+    if (!normalizedId) {
       setStudentInfo(null);
+      setHasLookupResult(false);
       return;
     }
     setLookingUp(true);
+    setHasLookupResult(false);
     try {
-      const user = await usersService.lookupByStudentId(id.trim());
+      const user = await usersService.lookupByStudentId(normalizedId);
       setStudentInfo(user);
     } catch {
       setStudentInfo(null);
     } finally {
       setLookingUp(false);
+      setHasLookupResult(true);
     }
-  };
-
-  const handleQRScan = (value: string) => {
-    setShowQR(false);
-    const id = value.trim();
-    setStudentId(id);
-    lookupStudent(id);
   };
 
   const addToCart = (product: Product) => {
@@ -129,17 +163,40 @@ export default function RegisterSaleScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo registrar la venta.",
+        text2: extractApiErrorMessage(err, "No se pudo registrar la venta."),
       });
     } finally {
       setRegistering(false);
     }
   };
 
-  if (loading) {
+  if (loading || cashStatus === "loading") {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={PURPLE} />
+      </View>
+    );
+  }
+
+  // Cash register closed — block sales
+  if (!cashStatus || cashStatus.status !== "open") {
+    return (
+      <View style={styles.center}>
+        <MaterialCommunityIcons name="cash-remove" size={64} color="#d1d5db" />
+        <Text style={styles.blockedTitle}>Caja cerrada</Text>
+        <Text style={styles.blockedSub}>
+          Debes abrir la caja antes de registrar ventas.
+        </Text>
+        <TouchableOpacity
+          style={styles.openCashBtn}
+          onPress={() => navigation.navigate("CashRegister")}
+        >
+          <MaterialCommunityIcons name="cash-register" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.openCashBtnText}>Ir a Caja</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchCash}>
+          <Text style={styles.retryBtnText}>Reintentar</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -164,32 +221,51 @@ export default function RegisterSaleScreen() {
         }
         ListHeaderComponent={
           <>
-            {/* Student QR row */}
-            <View style={styles.studentSection}>
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={[styles.studentInput, styles.inputFlex]}
-                  value={studentId}
-                  onChangeText={(v) => {
-                    setStudentId(v);
-                    setStudentInfo(null);
-                  }}
-                  onBlur={() => lookupStudent(studentId)}
-                  placeholder="ID estudiante (opcional)"
-                  placeholderTextColor="#aaa"
-                  autoCapitalize="none"
+            <View
+              style={[
+                styles.cashStatusCard,
+                cashStatus?.status === "open"
+                  ? styles.cashStatusOpen
+                  : styles.cashStatusClosed,
+              ]}
+            >
+              <View style={styles.cashStatusLeft}>
+                <MaterialCommunityIcons
+                  name={cashStatus?.status === "open" ? "cash-check" : "cash-remove"}
+                  size={18}
+                  color={cashStatus?.status === "open" ? "#15803d" : "#b45309"}
                 />
-                <TouchableOpacity
-                  style={styles.qrBtn}
-                  onPress={() => setShowQR(true)}
-                >
-                  <MaterialCommunityIcons
-                    name="qrcode-scan"
-                    size={20}
-                    color="#fff"
-                  />
-                </TouchableOpacity>
+                <View>
+                  <Text style={styles.cashStatusTitle}>
+                    {cashStatus?.status === "open" ? "Caja abierta" : "Caja cerrada"}
+                  </Text>
+                  <Text style={styles.cashStatusSub}>
+                    {cashStatus?.status === "open"
+                      ? `Apertura: $${(cashStatus.opening_balance ?? 0).toFixed(2)}`
+                      : "Abre la caja para habilitar ventas."}
+                  </Text>
+                </View>
               </View>
+              <TouchableOpacity onPress={() => navigation.navigate("CashRegister")}> 
+                <Text style={styles.cashStatusLink}>Ver caja</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Student */}
+            <View style={styles.studentSection}>
+              <TextInput
+                style={styles.studentInput}
+                value={studentId}
+                onChangeText={(v) => {
+                  setStudentId(v);
+                  setStudentInfo(null);
+                  setHasLookupResult(false);
+                }}
+                onBlur={() => lookupStudent(studentId)}
+                placeholder="ID del estudiante (opcional)"
+                placeholderTextColor="#aaa"
+                autoCapitalize="none"
+              />
               {lookingUp && (
                 <View style={styles.studentChip}>
                   <ActivityIndicator size="small" color={PURPLE} />
@@ -217,6 +293,21 @@ export default function RegisterSaleScreen() {
                     />
                   </TouchableOpacity>
                 </View>
+              )}
+              {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
+                <View style={[styles.studentChip, styles.studentChipGuest]}>
+                  <MaterialCommunityIcons
+                    name="account-question"
+                    size={16}
+                    color="#D97706"
+                  />
+                  <Text style={styles.studentChipText}>Alumno no registrado</Text>
+                </View>
+              )}
+              {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
+                <Text style={styles.studentHint}>
+                  La venta se registrará con esa matrícula aunque no exista cuenta.
+                </Text>
               )}
             </View>
 
@@ -257,7 +348,10 @@ export default function RegisterSaleScreen() {
           </>
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>Sin productos disponibles.</Text>
+          <View style={styles.emptyWrap}>
+            <MaterialCommunityIcons name="storefront-outline" size={52} color="#d1d5db" />
+            <Text style={styles.empty}>Sin productos disponibles</Text>
+          </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -265,13 +359,21 @@ export default function RegisterSaleScreen() {
             onPress={() => addToCart(item)}
             activeOpacity={0.8}
           >
-            <Text style={styles.productEmoji}>
-              {item.category === "bebida"
-                ? "🧃"
-                : item.category === "comida"
-                ? "🍫"
-                : "📦"}
-            </Text>
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={styles.productThumb}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.productEmoji}>
+                {item.category === "bebida"
+                  ? "🧃"
+                  : item.category === "comida"
+                  ? "🍫"
+                  : "📦"}
+              </Text>
+            )}
             <Text style={styles.productName}>{item.name}</Text>
             <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
             <Text style={styles.productStock}>Stock: {item.stock}</Text>
@@ -285,11 +387,6 @@ export default function RegisterSaleScreen() {
           </TouchableOpacity>
         )}
       />
-      <QRScannerModal
-        visible={showQR}
-        onScan={handleQRScan}
-        onClose={() => setShowQR(false)}
-      />
     </View>
   );
 }
@@ -298,10 +395,48 @@ const PURPLE = "#5C35D9";
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8F7FF" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
+  blockedTitle: { fontSize: 20, fontWeight: "700", color: "#444", marginTop: 16, marginBottom: 8 },
+  blockedSub: { fontSize: 14, color: "#9ca3af", textAlign: "center", maxWidth: 260, lineHeight: 20 },
+  openCashBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: PURPLE,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    marginTop: 24,
+  },
+  openCashBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  retryBtn: { marginTop: 12 },
+  retryBtnText: { color: PURPLE, fontWeight: "600", fontSize: 14 },
   list: { padding: 12 },
   row: { justifyContent: "space-between", marginBottom: 10 },
-  empty: { textAlign: "center", color: "#999", marginTop: 40 },
+  emptyWrap: { alignItems: "center", marginTop: 48, gap: 12 },
+  empty: { textAlign: "center", color: "#9ca3af", fontSize: 14 },
+  cashStatusCard: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cashStatusOpen: {
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+  },
+  cashStatusClosed: {
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  cashStatusLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  cashStatusTitle: { fontSize: 14, fontWeight: "700", color: "#1f2937" },
+  cashStatusSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
+  cashStatusLink: { color: PURPLE, fontSize: 12, fontWeight: "700" },
   // Student section
   studentSection: { marginBottom: 10 },
   inputRow: { flexDirection: "row", gap: 8, alignItems: "center" },
@@ -339,7 +474,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#bbf7d0",
   },
+  studentChipGuest: {
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+  },
   studentChipText: { fontSize: 13, color: "#374151" },
+  studentHint: { fontSize: 12, color: "#D97706", marginTop: 6, marginLeft: 2 },
   // Cart
   cartSummary: {
     backgroundColor: "#fff",
@@ -379,6 +520,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 1,
   },
+  productThumb: { width: 56, height: 56, borderRadius: 12, marginBottom: 8 },
   productEmoji: { fontSize: 32, marginBottom: 6 },
   productName: {
     fontSize: 13,

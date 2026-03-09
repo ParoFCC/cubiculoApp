@@ -11,6 +11,7 @@ import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { gamesService } from "../../../services/gamesService";
 import { Game } from "../../../types/games.types";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RequestLoanScreen() {
   const navigation = useNavigation<any>();
@@ -39,8 +40,10 @@ export default function RequestLoanScreen() {
         1500,
       );
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ?? "No se pudo registrar el préstamo.";
+      const msg = extractApiErrorMessage(
+        err,
+        "No se pudo registrar el préstamo.",
+      );
       Toast.show({ type: "error", text1: "Error", text2: msg });
     } finally {
       setLoading(false);

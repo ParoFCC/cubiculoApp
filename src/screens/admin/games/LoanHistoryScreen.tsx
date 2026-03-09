@@ -10,6 +10,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { gamesService } from "../../../services/gamesService";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { GameLoan } from "../../../types/games.types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -70,12 +71,20 @@ export default function LoanHistoryScreen() {
         />
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>Sin préstamos registrados.</Text>
+        <View style={styles.emptyWrap}>
+          <MaterialCommunityIcons name="gamepad-variant-outline" size={52} color="#d1d5db" />
+          <Text style={styles.empty}>Sin préstamos registrados</Text>
+        </View>
       }
       renderItem={({ item }) => (
         <View style={styles.card}>
           <View style={styles.body}>
-            <Text style={styles.gameName}>{item.game?.name ?? "—"}</Text>
+            <Text style={styles.gameName}>{item.game_name ?? "—"}</Text>
+            <Text style={styles.studentLine}>
+              {item.student_name
+                ? `${item.student_name} · ${item.student_id}`
+                : `Matrícula: ${item.student_id}`}
+            </Text>
             <Text style={styles.meta}>
               {format(new Date(item.borrowed_at), "d MMM yyyy", { locale: es })}
               {item.returned_at
@@ -84,6 +93,18 @@ export default function LoanHistoryScreen() {
                   })}`
                 : ""}
             </Text>
+            {!item.pieces_complete && (
+              <View style={styles.piecesRow}>
+                <MaterialCommunityIcons name="puzzle-remove-outline" size={12} color="#F59E0B" />
+                <Text style={styles.piecesWarn}>Piezas incompletas</Text>
+              </View>
+            )}
+            {item.admin_name ? (
+              <View style={styles.adminRow}>
+                <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                <Text style={styles.adminName}>{item.admin_name}</Text>
+              </View>
+            ) : null}
           </View>
           <View
             style={[
@@ -108,7 +129,8 @@ const PURPLE = "#5C35D9";
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   list: { padding: 16, gap: 10 },
-  empty: { textAlign: "center", color: "#999", marginTop: 40 },
+  emptyWrap: { alignItems: "center", marginTop: 48, gap: 12 },
+  empty: { textAlign: "center", color: "#9ca3af", fontSize: 14 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -119,7 +141,12 @@ const styles = StyleSheet.create({
   },
   body: { flex: 1 },
   gameName: { fontSize: 15, fontWeight: "700", color: "#1a1a2e" },
+  studentLine: { fontSize: 12, color: "#4b5563", marginTop: 2 },
   meta: { fontSize: 12, color: "#888", marginTop: 3 },
+  adminRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  adminName: { fontSize: 12, color: "#9ca3af" },
+  piecesRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  piecesWarn: { fontSize: 12, color: "#F59E0B", fontWeight: "600" },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,

@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { gamesService } from "../../../services/gamesService";
 import { GameLoan } from "../../../types/games.types";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RegisterReturnScreen() {
   const [loans, setLoans] = useState<GameLoan[]>([]);
@@ -57,7 +58,7 @@ export default function RegisterReturnScreen() {
           Toast.show({
             type: "error",
             text1: "Error",
-            text2: err?.response?.data?.detail ?? "No se pudo registrar.",
+            text2: extractApiErrorMessage(err, "No se pudo registrar."),
           }),
         )
         .finally(() => setReturning(null));

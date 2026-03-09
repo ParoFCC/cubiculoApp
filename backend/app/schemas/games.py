@@ -54,6 +54,15 @@ class LoanCreate(BaseModel):
     game_id: uuid.UUID
     due_at: datetime | None = None
     notes: str | None = None
+    pieces_complete: bool = True
+
+    @field_validator("student_id")
+    @classmethod
+    def student_id_required(cls, v: str) -> str:
+        value = v.strip().lower()
+        if not value:
+            raise ValueError("student_id es requerido")
+        return value
 
 
 class LoanRequest(BaseModel):
@@ -64,12 +73,34 @@ class LoanRequest(BaseModel):
 class LoanOut(BaseModel):
     id: uuid.UUID
     game_id: uuid.UUID
-    student_id: uuid.UUID
+    game_name: str = "—"
+    student_id: str
+    student_name: str = ""
     admin_id: uuid.UUID
+    admin_name: str = ""
     status: LoanStatus
     borrowed_at: datetime
     due_at: datetime | None
     returned_at: datetime | None
     notes: str | None
+    pieces_complete: bool = True
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_names(cls, obj):
+        return cls(
+            id=obj.id,
+            game_id=obj.game_id,
+            game_name=getattr(obj, "game_name", "—") or "—",
+            student_id=getattr(obj, "student_identifier", None) or str(obj.student_id),
+            student_name=getattr(obj, "student_name", "") or "",
+            admin_id=obj.admin_id,
+            admin_name=getattr(obj, "admin_name", "") or "",
+            status=obj.status,
+            borrowed_at=obj.borrowed_at,
+            due_at=obj.due_at,
+            returned_at=obj.returned_at,
+            notes=obj.notes,
+            pieces_complete=obj.pieces_complete,
+        )

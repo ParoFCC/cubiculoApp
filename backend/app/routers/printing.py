@@ -20,8 +20,29 @@ async def get_balance(
     student: User = Depends(get_current_user),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    period = student.period or "sin-periodo"
-    balance = await svc.get_or_create_balance(db, student.id, cubiculo_id, period)
+    period = svc.resolve_period(student, student.student_id)
+    balance = await svc.get_or_create_balance(
+        db,
+        student.student_id,
+        cubiculo_id,
+        period,
+        student.id,
+    )
+    return PrintBalanceOut.from_orm_with_total(balance, settings.FREE_PRINTS_PER_PERIOD)
+
+
+@router.get("/balance/{student_id}", response_model=PrintBalanceOut,
+            dependencies=[Depends(require_admin)])
+async def get_balance_by_student_id(
+    student_id: str,
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    balance, _student = await svc.get_balance_by_student_identifier(
+        db,
+        student_id,
+        cubiculo_id,
+    )
     return PrintBalanceOut.from_orm_with_total(balance, settings.FREE_PRINTS_PER_PERIOD)
 
 
@@ -30,7 +51,8 @@ async def get_my_history(
     db: AsyncSession = Depends(get_db),
     student: User = Depends(get_current_user),
 ):
-    return await svc.get_student_history(db, student.id)
+    history = await svc.get_student_history(db, student.student_id)
+    return [PrintJobOut.from_orm_with_names(item) for item in history]
 
 
 @router.get("/history/all", response_model=list[PrintJobOut],
@@ -39,16 +61,18 @@ async def get_all_history(
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.get_all_history(db, cubiculo_id)
+    history = await svc.get_all_history(db, cubiculo_id)
+    return [PrintJobOut.from_orm_with_names(item) for item in history]
 
 
 @router.get("/user/{student_id}", response_model=list[PrintJobOut],
             dependencies=[Depends(require_admin)])
 async def get_history_by_user(
-    student_id: uuid.UUID,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    return await svc.get_student_history(db, student_id)
+    history = await svc.get_student_history(db, student_id)
+    return [PrintJobOut.from_orm_with_names(item) for item in history]
 
 
 @router.post("", response_model=PrintJobOut, status_code=201)
@@ -58,4 +82,5 @@ async def register_print(
     admin: User = Depends(require_admin),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.register_print(db, payload, admin, cubiculo_id)
+    entry = await svc.register_print(db, payload, admin, cubiculo_id)
+    return PrintJobOut.from_orm_with_names(entry)

@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete, func
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
 from app.models.products import (
@@ -19,6 +20,22 @@ async def list_products(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[Produc
         select(Product).where(Product.cubiculo_id == cubiculo_id, Product.is_active.is_(True))
     )
     return list(result.scalars().all())
+
+
+async def delete_all_products(db: AsyncSession, cubiculo_id: uuid.UUID) -> int:
+    result = await db.execute(
+        delete(Product).where(Product.cubiculo_id == cubiculo_id)
+    )
+    await db.commit()
+    return result.rowcount
+
+
+async def delete_product(db: AsyncSession, product_id: uuid.UUID, cubiculo_id: uuid.UUID) -> None:
+    product = await db.get(Product, product_id)
+    if not product or product.cubiculo_id != cubiculo_id:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    await db.delete(product)
+    await db.commit()
 
 
 async def create_product(db: AsyncSession, payload: ProductCreate, cubiculo_id: uuid.UUID) -> Product:
@@ -55,17 +72,29 @@ async def register_sale(
         )
     )
     cash = cash_result.scalar_one_or_none()
+    if not cash:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay caja abierta. Abre la caja antes de registrar ventas.",
+        )
 
     # Resolve institutional student_id → user UUID (optional)
     student_uuid: uuid.UUID | None = None
+    student_name = ""
     if payload.student_id:
-        student = await users_svc.get_by_student_id(db, payload.student_id)
-        student_uuid = student.id
+        try:
+            student = await users_svc.get_by_student_id(db, payload.student_id)
+            student_uuid = student.id
+            student_name = student.name
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
 
     sale = Sale(
         cubiculo_id=cubiculo_id,
         admin_id=admin.id,
         student_id=student_uuid,
+        student_identifier=payload.student_id,
         cash_register_id=cash.id if cash else None,
         total=0,
     )
@@ -98,8 +127,14 @@ async def register_sale(
 
     sale.total = round(total, 2)
     await db.commit()
-    await db.refresh(sale)
-    return sale
+    # Re-fetch with items loaded
+    refreshed = await db.execute(
+        select(Sale).options(selectinload(Sale.items)).where(Sale.id == sale.id)
+    )
+    result = refreshed.scalar_one()
+    result.__dict__["admin_name"] = admin.name
+    result.__dict__["student_name"] = student_name
+    return result
 
 
 async def list_sales(
@@ -108,13 +143,33 @@ async def list_sales(
     from_date: datetime | None = None,
     to_date: datetime | None = None,
 ) -> list[Sale]:
-    query = select(Sale).where(Sale.cubiculo_id == cubiculo_id).order_by(Sale.sold_at.desc())
+    query = (
+        select(Sale)
+        .options(selectinload(Sale.items))
+        .where(Sale.cubiculo_id == cubiculo_id)
+        .order_by(Sale.sold_at.desc())
+    )
     if from_date:
         query = query.where(Sale.sold_at >= from_date)
     if to_date:
         query = query.where(Sale.sold_at <= to_date)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    sales = list(result.scalars().all())
+
+    if sales:
+        admin_ids = list({s.admin_id for s in sales})
+        admin_rows = await db.execute(select(User).where(User.id.in_(admin_ids)))
+        admin_map = {u.id: u.name for u in admin_rows.scalars()}
+        student_ids = list({s.student_id for s in sales if s.student_id})
+        student_map: dict[uuid.UUID, str] = {}
+        if student_ids:
+            student_rows = await db.execute(select(User).where(User.id.in_(student_ids)))
+            student_map = {u.id: u.name for u in student_rows.scalars()}
+        for s in sales:
+            s.__dict__["admin_name"] = admin_map.get(s.admin_id, "")
+            s.__dict__["student_name"] = student_map.get(s.student_id, "") if s.student_id else ""
+
+    return sales
 
 
 # ── Cash Register ─────────────────────────────────────────────────────────
@@ -171,4 +226,30 @@ async def get_current_cash_register(db: AsyncSession, cubiculo_id: uuid.UUID) ->
     cash = result.scalar_one_or_none()
     if not cash:
         raise HTTPException(status_code=404, detail="Sin registros de caja")
+    total_result = await db.execute(
+        select(func.coalesce(func.sum(Sale.total), 0))
+        .where(Sale.cash_register_id == cash.id)
+    )
+    cash.sales_total = float(total_result.scalar())
     return cash
+
+
+async def get_cash_register_history(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[CashRegister]:
+    result = await db.execute(
+        select(CashRegister)
+        .where(CashRegister.cubiculo_id == cubiculo_id)
+        .order_by(CashRegister.opened_at.desc())
+        .limit(20)
+    )
+    registers = list(result.scalars().all())
+    if not registers:
+        return registers
+    totals_result = await db.execute(
+        select(Sale.cash_register_id, func.coalesce(func.sum(Sale.total), 0).label("sales_total"))
+        .where(Sale.cash_register_id.in_([r.id for r in registers]))
+        .group_by(Sale.cash_register_id)
+    )
+    totals_map = {row.cash_register_id: float(row.sales_total) for row in totals_result}
+    for reg in registers:
+        reg.sales_total = totals_map.get(reg.id, 0.0)
+    return registers

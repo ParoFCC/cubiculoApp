@@ -9,6 +9,9 @@ export const printingService = {
   getMyBalance: (): Promise<PrintBalance> =>
     api.get<PrintBalance>("/print/balance").then((r) => r.data),
 
+  getStudentBalance: (studentId: string): Promise<PrintBalance> =>
+    api.get<PrintBalance>(`/print/balance/${studentId}`).then((r) => r.data),
+
   getMyHistory: (): Promise<PrintHistoryItem[]> =>
     api.get<PrintHistoryItem[]>("/print/history").then((r) => r.data),
 

@@ -10,7 +10,9 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Share,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { useNavigation } from "@react-navigation/native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
@@ -18,6 +20,7 @@ import DocumentPicker from "react-native-document-picker";
 import { gamesService } from "../../../services/gamesService";
 import { uploadService } from "../../../services/uploadService";
 import { Game } from "../../../types/games.types";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
 const PURPLE = "#5C35D9";
 const PURPLE_LIGHT = "#EEE9FF";
@@ -36,6 +39,7 @@ export default function InventoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [qrGame, setQrGame] = useState<Game | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState<GameForm>({
@@ -96,7 +100,7 @@ export default function InventoryScreen() {
         Toast.show({
           type: "error",
           text1: "Error al subir el archivo",
-          text2: err?.response?.data?.detail ?? err?.message ?? "",
+          text2: extractApiErrorMessage(err, "No se pudo subir el archivo."),
         });
       }
     } finally {
@@ -131,7 +135,7 @@ export default function InventoryScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo crear el juego.",
+        text2: extractApiErrorMessage(err, "No se pudo crear el juego."),
       });
     } finally {
       setSaving(false);
@@ -225,6 +229,16 @@ export default function InventoryScreen() {
                 </Text>
               </View>
               <TouchableOpacity
+                style={styles.qrIconBtn}
+                onPress={() => setQrGame(item)}
+              >
+                <MaterialCommunityIcons
+                  name="qrcode"
+                  size={20}
+                  color={PURPLE}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.loanBtn}
                 onPress={() =>
                   navigation.navigate("RegisterLoan", { preselectedGame: item })
@@ -241,6 +255,63 @@ export default function InventoryScreen() {
           );
         }}
       />
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={!!qrGame}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQrGame(null)}
+      >
+        <View style={styles.qrOverlay}>
+          <View style={styles.qrCard}>
+            <Text style={styles.qrTitle}>{qrGame?.name}</Text>
+            <View style={styles.qrWrap}>
+              <QRCode
+                value={qrGame ? `cubiculoapp://loan?game_id=${qrGame.id}` : "x"}
+                size={200}
+                color="#1a1a2e"
+                backgroundColor="#fff"
+              />
+            </View>
+            <View style={styles.qrHintRow}>
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={14}
+                color="#6b7280"
+              />
+              <Text style={styles.qrHintText}>
+                Imprime o pega este código en el juego. Al escanearlo el usuario
+                podrá solicitar el préstamo directamente.
+              </Text>
+            </View>
+            <View style={styles.qrActions}>
+              <TouchableOpacity
+                style={styles.qrShareBtn}
+                onPress={() =>
+                  Share.share({
+                    message: `Juego: ${qrGame?.name}\nEscanea este enlace para préstamo: cubiculoapp://loan?game_id=${qrGame?.id}`,
+                    title: qrGame?.name,
+                  })
+                }
+              >
+                <MaterialCommunityIcons
+                  name="share-variant"
+                  size={16}
+                  color="#fff"
+                />
+                <Text style={styles.qrShareText}>Compartir</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.qrCloseBtn}
+                onPress={() => setQrGame(null)}
+              >
+                <Text style={styles.qrCloseBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Create Game Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
@@ -502,4 +573,81 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   uploadedUrl: { flex: 1, fontSize: 11, color: "#374151" },
+  // QR modal
+  qrIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: PURPLE_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
+  qrOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  qrCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    width: "100%",
+    gap: 16,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  qrTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1a1a2e",
+    textAlign: "center",
+  },
+  qrWrap: {
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  qrHintRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    padding: 10,
+  },
+  qrHintText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#4b5563",
+    lineHeight: 18,
+  },
+  qrActions: { flexDirection: "row", gap: 10, width: "100%" },
+  qrShareBtn: {
+    flex: 1,
+    backgroundColor: PURPLE,
+    borderRadius: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  qrShareText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  qrCloseBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  qrCloseBtnText: { color: "#374151", fontWeight: "600", fontSize: 14 },
 });

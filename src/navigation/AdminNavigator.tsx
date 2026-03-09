@@ -7,6 +7,9 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useCubiculoStore } from "../store/useCubiculoStore";
 import { SUPER_ADMIN_ID } from "../types/auth.types";
 
+// Admin — Dashboard
+import DashboardScreen from "../screens/admin/dashboard/DashboardScreen";
+
 // Admin — Games
 import InventoryScreen from "../screens/admin/games/InventoryScreen";
 import RegisterLoanScreen from "../screens/admin/games/RegisterLoanScreen";
@@ -29,11 +32,17 @@ import UsersAdminScreen from "../screens/admin/users/UsersAdminScreen";
 // Admin — Cubículos
 import CubiculosManagerScreen from "../screens/admin/cubiculos/CubiculosManagerScreen";
 
+// Admin — Attendance
+import AttendanceScreen from "../screens/admin/attendance/AttendanceScreen";
+import AttendanceHistoryScreen from "../screens/admin/attendance/AttendanceHistoryScreen";
+
+// Admin — QR Codes
+import QrCodesScreen from "../screens/admin/qrcodes/QrCodesScreen";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const PURPLE = "#5C35D9";
-const PURPLE_LIGHT = "#EEE9FF";
 
 const headerStyle = {
   backgroundColor: "#fff",
@@ -45,12 +54,38 @@ const headerStyle = {
 
 const headerTintColor = "#1a1a2e";
 
-function LogoutButton() {
+function HeaderActions() {
   const logout = useAuthStore((s) => s.logout);
+  const clearCubiculo = useCubiculoStore((s) => s.clearCubiculo);
   return (
-    <TouchableOpacity onPress={logout} style={{ marginRight: 16, padding: 4 }}>
-      <MaterialCommunityIcons name="logout" size={22} color="#E53935" />
-    </TouchableOpacity>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginRight: 8,
+      }}
+    >
+      <TouchableOpacity onPress={clearCubiculo} style={{ padding: 4 }}>
+        <MaterialCommunityIcons
+          name="office-building-outline"
+          size={22}
+          color={PURPLE}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={logout} style={{ padding: 4 }}>
+        <MaterialCommunityIcons name="logout" size={22} color="#E53935" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function HeaderCluster({ children }: { children?: React.ReactNode }) {
+  return (
+    <View style={styles.headerCluster}>
+      {children}
+      <HeaderActions />
+    </View>
   );
 }
 
@@ -62,20 +97,37 @@ function AdminBadge() {
   );
 }
 
-function GamesAdminStack() {
+const stackScreenOptions = {
+  headerStyle,
+  headerTintColor,
+  headerTitleStyle: { fontWeight: "700" as const, fontSize: 16 },
+  headerRight: () => <HeaderActions />,
+};
+
+function HomeStack() {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle,
-        headerTintColor,
-        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-        headerRight: () => <LogoutButton />,
-      }}
-    >
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Inventory"
         component={InventoryScreen}
-        options={{ title: "Juegos" }}
+        options={({ navigation }) => ({
+          title: "Juegos",
+          headerRight: () => (
+            <HeaderCluster>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("QrCodes")}
+                style={styles.headerIconBtn}
+              >
+                <MaterialCommunityIcons name="qrcode" size={20} color={PURPLE} />
+              </TouchableOpacity>
+            </HeaderCluster>
+          ),
+        })}
       />
       <Stack.Screen
         name="RegisterLoan"
@@ -90,50 +142,53 @@ function GamesAdminStack() {
       <Stack.Screen
         name="LoanHistory"
         component={LoanHistoryScreen}
-        options={{ title: "Historial" }}
+        options={{ title: "Historial de Préstamos" }}
       />
-    </Stack.Navigator>
-  );
-}
-
-function PrintingAdminStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle,
-        headerTintColor,
-        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-        headerRight: () => <LogoutButton />,
-      }}
-    >
       <Stack.Screen
         name="RegisterPrint"
         component={RegisterPrintScreen}
-        options={{ title: "Impresiones" }}
+        options={({ navigation }) => ({
+          title: "Registrar Impresión",
+          headerRight: () => (
+            <HeaderCluster>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("PrintHistoryAdmin")}
+                style={styles.headerPillBtn}
+              >
+                <MaterialCommunityIcons name="history" size={16} color={PURPLE} />
+                <Text style={styles.headerPillBtnText}>Historial</Text>
+              </TouchableOpacity>
+            </HeaderCluster>
+          ),
+        })}
       />
       <Stack.Screen
         name="PrintHistoryAdmin"
         component={PrintHistoryAdminScreen}
-        options={{ title: "Historial Global" }}
+        options={{ title: "Historial de Impresiones" }}
       />
-    </Stack.Navigator>
-  );
-}
-
-function ProductsAdminStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle,
-        headerTintColor,
-        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-        headerRight: () => <LogoutButton />,
-      }}
-    >
+      <Stack.Screen
+        name="InventoryProduct"
+        component={InventoryProductScreen}
+        options={{ title: "Productos" }}
+      />
       <Stack.Screen
         name="RegisterSale"
         component={RegisterSaleScreen}
-        options={{ title: "Registrar Venta" }}
+        options={({ navigation }) => ({
+          title: "Registrar Venta",
+          headerRight: () => (
+            <HeaderCluster>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CashRegister")}
+                style={styles.headerPillBtn}
+              >
+                <MaterialCommunityIcons name="cash-register" size={16} color={PURPLE} />
+                <Text style={styles.headerPillBtnText}>Caja</Text>
+              </TouchableOpacity>
+            </HeaderCluster>
+          ),
+        })}
       />
       <Stack.Screen
         name="CashRegister"
@@ -141,14 +196,41 @@ function ProductsAdminStack() {
         options={{ title: "Caja" }}
       />
       <Stack.Screen
-        name="InventoryProduct"
-        component={InventoryProductScreen}
-        options={{ title: "Inventario" }}
-      />
-      <Stack.Screen
         name="SalesReport"
         component={SalesReportScreen}
-        options={{ title: "Reportes" }}
+        options={{ title: "Reporte de Ventas" }}
+      />
+      <Stack.Screen
+        name="QrCodes"
+        component={QrCodesScreen}
+        options={{ title: "Códigos QR" }}
+      />
+      <Stack.Screen
+        name="UsersAdmin"
+        component={UsersAdminScreen}
+        options={{ title: "Usuarios" }}
+      />
+      <Stack.Screen
+        name="CubiculosAdmin"
+        component={CubiculosManagerScreen}
+        options={{ title: "Cubículos" }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function AttendanceAdminStack() {
+  return (
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen
+        name="Attendance"
+        component={AttendanceScreen}
+        options={{ title: "Asistencia" }}
+      />
+      <Stack.Screen
+        name="AttendanceHistory"
+        component={AttendanceHistoryScreen}
+        options={{ title: "Historial" }}
       />
     </Stack.Navigator>
   );
@@ -166,12 +248,28 @@ export default function AdminNavigator() {
 
   if (!hasServiceTabs) {
     const logout = useAuthStore.getState().logout;
+    const clearCubiculo = useCubiculoStore.getState().clearCubiculo;
     return (
       <View style={styles.noServices}>
-        <MaterialCommunityIcons name="store-off-outline" size={52} color="#ccc" />
+        <MaterialCommunityIcons
+          name="store-off-outline"
+          size={52}
+          color="#ccc"
+        />
         <Text style={styles.noServicesText}>
           Este cubículo no tiene servicios activos.
         </Text>
+        <TouchableOpacity
+          onPress={clearCubiculo}
+          style={[
+            styles.logoutInline,
+            { backgroundColor: "#EEE9FF", marginBottom: 12 },
+          ]}
+        >
+          <Text style={[styles.logoutInlineText, { color: PURPLE }]}>
+            Cambiar cubículo
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={logout} style={styles.logoutInline}>
           <Text style={styles.logoutInlineText}>Cerrar sesión</Text>
         </TouchableOpacity>
@@ -184,23 +282,20 @@ export default function AdminNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: PURPLE,
-        tabBarInactiveTintColor: "#aaa",
+        tabBarInactiveTintColor: "#9ca3af",
         tabBarStyle: {
           backgroundColor: "#fff",
           borderTopColor: "#F0EEFF",
           borderTopWidth: 1,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 66,
+          paddingBottom: 10,
+          paddingTop: 8,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, string> = {
-            GamesAdminTab: "dice-multiple",
-            PrintingAdminTab: "printer",
-            ProductsAdminTab: "cart",
-            UsersAdminTab: "account-group",
-            CubiculosAdminTab: "office-building-cog",
+            HomeTab: "view-grid-outline",
+            AttendanceAdminTab: "clock-check-outline",
           };
           return (
             <MaterialCommunityIcons
@@ -212,60 +307,60 @@ export default function AdminNavigator() {
         },
       })}
     >
-      {cubiculo?.games_enabled !== false && (
-        <Tab.Screen
-          name="GamesAdminTab"
-          component={GamesAdminStack}
-          options={{ title: "Juegos" }}
-        />
-      )}
-      {cubiculo?.printing_enabled !== false && (
-        <Tab.Screen
-          name="PrintingAdminTab"
-          component={PrintingAdminStack}
-          options={{ title: "Impresiones" }}
-        />
-      )}
-      {cubiculo?.products_enabled !== false && (
-        <Tab.Screen
-          name="ProductsAdminTab"
-          component={ProductsAdminStack}
-          options={{ title: "Ventas" }}
-        />
-      )}
-      {isSuperAdmin && (
-        <Tab.Screen
-          name="UsersAdminTab"
-          component={UsersAdminScreen}
-          options={{
-            title: "Usuarios",
-            headerShown: true,
-            headerStyle,
-            headerTintColor: "#1a1a2e",
-            headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-            headerRight: () => <LogoutButton />,
-          }}
-        />
-      )}
-      {isSuperAdmin && (
-        <Tab.Screen
-          name="CubiculosAdminTab"
-          component={CubiculosManagerScreen}
-          options={{
-            title: "Cubículos",
-            headerShown: true,
-            headerStyle,
-            headerTintColor: "#1a1a2e",
-            headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-            headerRight: () => <LogoutButton />,
-          }}
-        />
-      )}
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
+        options={{ title: "Inicio" }}
+      />
+      <Tab.Screen
+        name="AttendanceAdminTab"
+        component={AttendanceAdminStack}
+        options={{ title: "Asistencia" }}
+      />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
+  headerCluster: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#F5F3FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerPillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F5F3FF",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  headerPillBtnText: {
+    color: PURPLE,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  adminBadge: {
+    backgroundColor: "#111827",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  adminBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+  },
   noServices: {
     flex: 1,
     justifyContent: "center",

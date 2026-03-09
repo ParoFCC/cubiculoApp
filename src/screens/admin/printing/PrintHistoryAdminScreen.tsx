@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { printingService } from "../../../services/printingService";
 import { PrintHistoryItem } from "../../../types/printing.types";
 
@@ -80,11 +81,22 @@ export default function PrintHistoryAdminScreen() {
           />
           <View style={styles.body}>
             <Text style={styles.pages}>{item.pages} pág.</Text>
+            <Text style={styles.studentLine}>
+              {item.student_name
+                ? `${item.student_name} · ${item.student_id}`
+                : `Matrícula: ${item.student_id}`}
+            </Text>
             <Text style={styles.date}>
               {format(new Date(item.printed_at), "d MMM yyyy, HH:mm", {
                 locale: es,
               })}
             </Text>
+            {item.admin_name ? (
+              <View style={styles.adminRow}>
+                <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                <Text style={styles.adminName}>{item.admin_name}</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={[styles.cost, item.type === "paid" && styles.costPaid]}>
             {item.type === "free" ? "Gratis" : `$${item.cost.toFixed(2)}`}
@@ -137,7 +149,10 @@ const styles = StyleSheet.create({
   paid: { backgroundColor: "#E53935" },
   body: { flex: 1 },
   pages: { fontSize: 15, fontWeight: "600", color: "#222" },
+  studentLine: { fontSize: 12, color: "#4b5563", marginTop: 2 },
   date: { fontSize: 12, color: "#888", marginTop: 2 },
+  adminRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  adminName: { fontSize: 11, color: "#9ca3af" },
   cost: { fontSize: 14, fontWeight: "700", color: "#2E7D32" },
   costPaid: { color: "#C62828" },
 });

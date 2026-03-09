@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import * as React from "react";
 import {
   View,
   Text,
@@ -14,19 +14,20 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 import { authService } from "../../services/authService";
+import { extractApiErrorMessage } from "../../utils/apiError";
 
 const PURPLE = "#5C35D9";
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [email, setEmail] = useState("");
-  const [pin, setPin] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [step, setStep] = React.useState<1 | 2>(1);
+  const [email, setEmail] = React.useState("");
+  const [pin, setPin] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [showNew, setShowNew] = React.useState(false);
+  const [showConfirm, setShowConfirm] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
 
   const handleRequestCode = async () => {
     if (!email.trim()) {
@@ -43,7 +44,7 @@ export default function ForgotPasswordScreen() {
       });
       setStep(2);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "No se pudo enviar el código.";
+      const msg = extractApiErrorMessage(err, "No se pudo enviar el código.");
       Toast.show({ type: "error", text1: "Error", text2: msg });
     } finally {
       setLoading(false);
@@ -81,9 +82,10 @@ export default function ForgotPasswordScreen() {
       });
       navigation.navigate("Login");
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ??
-        "No se pudo restablecer. Verifica el código.";
+      const msg = extractApiErrorMessage(
+        err,
+        "No se pudo restablecer. Verifica el código.",
+      );
       Toast.show({ type: "error", text1: "Error", text2: msg });
     } finally {
       setLoading(false);

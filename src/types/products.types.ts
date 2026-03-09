@@ -2,6 +2,7 @@ export interface Product {
   id: string;
   name: string;
   category: string;
+  image_url?: string;
   price: number;
   stock: number;
   is_active: boolean;
@@ -16,7 +17,9 @@ export interface SaleItem {
 export interface Sale {
   id: string;
   admin_id: string;
+  admin_name: string;
   student_id?: string;
+  student_name: string;
   total: number;
   sold_at: string;
   items: SaleItem[];
@@ -37,4 +40,5 @@ export interface CashRegister {
   opened_at: string;
   closed_at?: string;
   status: CashRegisterStatus;
+  sales_total?: number;
 }

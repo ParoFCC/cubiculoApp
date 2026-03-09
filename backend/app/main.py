@@ -2,12 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, users, games, printing, products, cubiculos, upload
+from app.routers import auth, users, games, printing, products, cubiculos, upload, attendance, search
 
 # Ensure all models are imported so SQLAlchemy can create their tables
 import app.models.user  # noqa: F401
 import app.models.email_verification  # noqa: F401
 import app.models.cubiculo  # noqa: F401
+import app.models.attendance  # noqa: F401
 
 app = FastAPI(
     title="CubiculoApp API",
@@ -31,6 +32,8 @@ app.include_router(games.router, prefix="/games", tags=["games"])
 app.include_router(printing.router, prefix="/print", tags=["printing"])
 app.include_router(products.router, tags=["products"])
 app.include_router(upload.router, prefix="/upload", tags=["upload"])
+app.include_router(attendance.router)
+app.include_router(search.router)
 
 
 @app.get("/health")

@@ -58,7 +58,30 @@ async def list_loans(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[GameLoan]
         .where(GameLoan.cubiculo_id == cubiculo_id)
         .order_by(GameLoan.borrowed_at.desc())
     )
-    return list(result.scalars().all())
+    loans = list(result.scalars().all())
+
+    if loans:
+        admin_ids = list({l.admin_id for l in loans})
+        game_ids = list({l.game_id for l in loans})
+        student_ids = list({l.student_id for l in loans if l.student_id})
+
+        admin_rows = await db.execute(select(User).where(User.id.in_(admin_ids)))
+        admin_map = {u.id: u.name for u in admin_rows.scalars()}
+
+        game_rows = await db.execute(select(Game).where(Game.id.in_(game_ids)))
+        game_map = {g.id: g.name for g in game_rows.scalars()}
+
+        student_map: dict[uuid.UUID, str] = {}
+        if student_ids:
+            student_rows = await db.execute(select(User).where(User.id.in_(student_ids)))
+            student_map = {u.id: u.name for u in student_rows.scalars()}
+
+        for loan in loans:
+            loan.__dict__["admin_name"] = admin_map.get(loan.admin_id, "")
+            loan.__dict__["game_name"] = game_map.get(loan.game_id, "—")
+            loan.__dict__["student_name"] = student_map.get(loan.student_id, "") if loan.student_id else ""
+
+    return loans
 
 
 async def register_loan(
@@ -68,16 +91,23 @@ async def register_loan(
     if game.quantity_avail < 1:
         raise HTTPException(status_code=400, detail="No hay unidades disponibles del juego")
 
-    # Resolve institutional student_id → user UUID
-    student = await users_svc.get_by_student_id(db, payload.student_id)
+    student_identifier = payload.student_id.strip().lower()
+    student: User | None = None
+    try:
+        student = await users_svc.get_by_student_id(db, student_identifier)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
 
     loan = GameLoan(
         cubiculo_id=cubiculo_id,
         game_id=payload.game_id,
-        student_id=student.id,
+        student_id=student.id if student else None,
+        student_identifier=student_identifier,
         admin_id=admin.id,
         due_at=payload.due_at,
         notes=payload.notes,
+        pieces_complete=payload.pieces_complete,
     )
     game.quantity_avail -= 1
     db.add(loan)

@@ -158,6 +158,7 @@ export default function GameDetailScreen() {
         style={[styles.btn, game.quantity_avail <= 0 && styles.btnDisabled]}
         onPress={handleRequest}
         activeOpacity={0.85}
+        disabled={game.quantity_avail <= 0}
       >
         <MaterialCommunityIcons
           name="hand-extended-outline"

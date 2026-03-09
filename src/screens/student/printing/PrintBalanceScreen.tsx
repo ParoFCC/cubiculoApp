@@ -50,6 +50,14 @@ export default function PrintBalanceScreen() {
     ? Math.max(0, Math.min(balance.free_remaining / freeTotal, 1))
     : 0;
 
+  const barColor = pct > 0.5 ? "#22C55E" : pct > 0.2 ? "#F59E0B" : "#EF4444";
+  const urgencyLabel =
+    pct > 0.5 ? "Buen saldo"
+    : pct > 0.2 ? "Pocas páginas"
+    : "¡Casi sin impresiones!";
+  const urgencyColor = pct > 0.5 ? "#16A34A" : pct > 0.2 ? "#D97706" : "#DC2626";
+  const pctText = `${Math.round(pct * 100)}% restante`;
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -67,9 +75,13 @@ export default function PrintBalanceScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Período {balance?.period ?? "—"}</Text>
 
-        {/* Progress ring (simple bar) */}
+        {/* Progress bar */}
+        <View style={styles.barLabelRow}>
+          <Text style={[styles.urgencyLabel, { color: urgencyColor }]}>{urgencyLabel}</Text>
+          <Text style={styles.pctLabel}>{pctText}</Text>
+        </View>
         <View style={styles.barTrack}>
-          <View style={[styles.barFill, { flex: pct }]} />
+          <View style={[styles.barFill, { flex: pct, backgroundColor: barColor }]} />
           <View style={{ flex: Math.max(0, 1 - pct) }} />
         </View>
 
@@ -166,14 +178,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   barTrack: {
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#FFEBEE",
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#f3f4f6",
     flexDirection: "row",
     overflow: "hidden",
     marginBottom: 20,
   },
-  barFill: { backgroundColor: GREEN, borderRadius: 6 },
+  barFill: { borderRadius: 7 },
+  barLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  urgencyLabel: { fontSize: 13, fontWeight: "700" },
+  pctLabel: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
   row: { flexDirection: "row", justifyContent: "space-around" },
   historyBtn: {
     flexDirection: "row",

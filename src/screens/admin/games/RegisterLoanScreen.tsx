@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -16,11 +17,12 @@ import { usersService } from "../../../services/usersService";
 import { Game } from "../../../types/games.types";
 import { User } from "../../../types/auth.types";
 import QRScannerModal from "../../../components/QRScannerModal";
+import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RegisterLoanScreen() {
   const navigation = useNavigation<any>();
   const routeParams = useRoute<any>().params as
-    | { preselectedGame?: Game }
+    | { preselectedGame?: Game; game_id?: string; preselectedStudentId?: string }
     | undefined;
 
   const [games, setGames] = useState<Game[]>([]);
@@ -30,30 +32,51 @@ export default function RegisterLoanScreen() {
   const [studentId, setStudentId] = useState("");
   const [studentInfo, setStudentInfo] = useState<User | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [hasLookupResult, setHasLookupResult] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingGames, setLoadingGames] = useState(true);
+  const [piecesComplete, setPiecesComplete] = useState(true);
 
   useEffect(() => {
     gamesService
       .getCatalog()
-      .then((data) => setGames(data.filter((g) => g.quantity_avail > 0)))
+      .then((data) => {
+        const available = data.filter((g) => g.quantity_avail > 0);
+        setGames(available);
+        // Handle deep link: game_id param (UUID string from cubiculoapp://loan?game_id=<uuid>)
+        if (routeParams?.game_id && !routeParams.preselectedGame) {
+          const found = data.find((g) => g.id === routeParams.game_id);
+          if (found) setSelectedGame(found);
+        }
+      })
       .finally(() => setLoadingGames(false));
   }, []);
 
+  useEffect(() => {
+    if (routeParams?.preselectedStudentId) {
+      setStudentId(routeParams.preselectedStudentId);
+      lookupStudent(routeParams.preselectedStudentId);
+    }
+  }, [routeParams?.preselectedStudentId]);
+
   const lookupStudent = async (id: string) => {
-    if (!id.trim()) {
+    const normalizedId = id.trim().toLowerCase();
+    if (!normalizedId) {
       setStudentInfo(null);
+      setHasLookupResult(false);
       return;
     }
     setLookingUp(true);
+    setHasLookupResult(false);
     try {
-      const user = await usersService.lookupByStudentId(id.trim());
+      const user = await usersService.lookupByStudentId(normalizedId);
       setStudentInfo(user);
     } catch {
       setStudentInfo(null);
     } finally {
       setLookingUp(false);
+      setHasLookupResult(true);
     }
   };
 
@@ -83,7 +106,7 @@ export default function RegisterLoanScreen() {
     }
     setLoading(true);
     try {
-      await gamesService.registerLoan(studentId.trim(), selectedGame.id);
+      await gamesService.registerLoan(studentId.trim(), selectedGame.id, piecesComplete);
       Toast.show({
         type: "success",
         text1: "Préstamo registrado",
@@ -94,7 +117,7 @@ export default function RegisterLoanScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.response?.data?.detail ?? "No se pudo registrar.",
+        text2: extractApiErrorMessage(err, "No se pudo registrar."),
       });
     } finally {
       setLoading(false);
@@ -112,6 +135,7 @@ export default function RegisterLoanScreen() {
           onChangeText={(v) => {
             setStudentId(v);
             setStudentInfo(null);
+            setHasLookupResult(false);
           }}
           onBlur={() => lookupStudent(studentId)}
           placeholder="Ej: be202300001"
@@ -143,11 +167,38 @@ export default function RegisterLoanScreen() {
           </View>
         </View>
       )}
-      {!lookingUp && studentId.trim() && !studentInfo && (
-        <Text style={styles.studentNotFound}>Estudiante no encontrado</Text>
+      {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
+        <View style={[styles.studentCard, styles.studentCardGuest]}>
+          <MaterialCommunityIcons
+            name="account-question"
+            size={20}
+            color="#D97706"
+          />
+          <View>
+            <Text style={styles.studentCardName}>Alumno no registrado</Text>
+            <Text style={styles.studentCardSub}>
+              Se usará la matrícula para registrar el préstamo y la devolución.
+            </Text>
+          </View>
+        </View>
+      )}
+      {!lookingUp && hasLookupResult && studentId.trim() && !studentInfo && (
+        <Text style={styles.studentNotFound}>
+          No existe un usuario con esa matrícula, pero sí puedes registrar el préstamo.
+        </Text>
       )}
 
       <Text style={styles.sectionLabel}>Seleccionar Juego</Text>
+
+      {selectedGame && (
+        <View style={styles.selectedGameBanner}>
+          <MaterialCommunityIcons name="gamepad-variant" size={18} color={PURPLE} />
+          <Text style={styles.selectedGameBannerText}>{selectedGame.name}</Text>
+          <TouchableOpacity onPress={() => setSelectedGame(null)}>
+            <MaterialCommunityIcons name="close-circle-outline" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {loadingGames ? (
         <ActivityIndicator color={PURPLE} style={{ marginVertical: 20 }} />
@@ -174,6 +225,25 @@ export default function RegisterLoanScreen() {
             </Text>
           </TouchableOpacity>
         ))
+      )}
+
+      {/* Pieces complete toggle */}
+      <View style={styles.piecesRow}>
+        <View style={styles.piecesLabel}>
+          <MaterialCommunityIcons name="puzzle-check-outline" size={18} color="#374151" />
+          <Text style={styles.piecesText}>Todas las piezas completas</Text>
+        </View>
+        <Switch
+          value={piecesComplete}
+          onValueChange={setPiecesComplete}
+          trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
+          thumbColor={piecesComplete ? PURPLE : "#9ca3af"}
+        />
+      </View>
+      {!piecesComplete && (
+        <Text style={styles.piecesWarning}>
+          ⚠️ Se registrará que el juego tiene piezas faltantes.
+        </Text>
       )}
 
       <TouchableOpacity
@@ -243,6 +313,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#bbf7d0",
   },
+  studentCardGuest: {
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+  },
   studentCardText: { color: "#6b7280", fontSize: 13 },
   studentCardName: { fontSize: 14, fontWeight: "700", color: "#1a1a2e" },
   studentCardSub: { fontSize: 12, color: "#6b7280" },
@@ -260,6 +335,32 @@ const styles = StyleSheet.create({
   gameRowText: { fontSize: 15, color: "#333" },
   gameRowTextSelected: { fontWeight: "700", color: PURPLE },
   avail: { color: "#888", fontWeight: "400" },
+  selectedGameBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#EEE9FF",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: PURPLE,
+  },
+  selectedGameBannerText: { flex: 1, fontSize: 15, fontWeight: "700", color: PURPLE },
+  piecesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 20,
+    elevation: 1,
+  },
+  piecesLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
+  piecesText: { fontSize: 15, fontWeight: "600", color: "#374151" },
+  piecesWarning: { fontSize: 12, color: "#F59E0B", marginTop: 6, marginLeft: 2 },
   btn: {
     backgroundColor: PURPLE,
     borderRadius: 12,

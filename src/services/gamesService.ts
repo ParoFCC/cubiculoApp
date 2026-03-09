@@ -21,11 +21,12 @@ export const gamesService = {
   getLoanHistory: (): Promise<GameLoan[]> =>
     api.get<GameLoan[]>("/games/loans").then((r) => r.data),
 
-  registerLoan: (studentId: string, gameId: string): Promise<GameLoan> =>
+  registerLoan: (studentId: string, gameId: string, piecesComplete = true): Promise<GameLoan> =>
     api
       .post<GameLoan>("/games/loans", {
         student_id: studentId,
         game_id: gameId,
+        pieces_complete: piecesComplete,
       })
       .then((r) => r.data),
 

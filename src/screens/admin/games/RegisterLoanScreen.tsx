@@ -22,7 +22,11 @@ import { extractApiErrorMessage } from "../../../utils/apiError";
 export default function RegisterLoanScreen() {
   const navigation = useNavigation<any>();
   const routeParams = useRoute<any>().params as
-    | { preselectedGame?: Game; game_id?: string; preselectedStudentId?: string }
+    | {
+        preselectedGame?: Game;
+        game_id?: string;
+        preselectedStudentId?: string;
+      }
     | undefined;
 
   const [games, setGames] = useState<Game[]>([]);
@@ -106,7 +110,11 @@ export default function RegisterLoanScreen() {
     }
     setLoading(true);
     try {
-      await gamesService.registerLoan(studentId.trim(), selectedGame.id, piecesComplete);
+      await gamesService.registerLoan(
+        studentId.trim(),
+        selectedGame.id,
+        piecesComplete,
+      );
       Toast.show({
         type: "success",
         text1: "Préstamo registrado",
@@ -184,7 +192,8 @@ export default function RegisterLoanScreen() {
       )}
       {!lookingUp && hasLookupResult && studentId.trim() && !studentInfo && (
         <Text style={styles.studentNotFound}>
-          No existe un usuario con esa matrícula, pero sí puedes registrar el préstamo.
+          No existe un usuario con esa matrícula, pero sí puedes registrar el
+          préstamo.
         </Text>
       )}
 
@@ -192,10 +201,18 @@ export default function RegisterLoanScreen() {
 
       {selectedGame && (
         <View style={styles.selectedGameBanner}>
-          <MaterialCommunityIcons name="gamepad-variant" size={18} color={PURPLE} />
+          <MaterialCommunityIcons
+            name="gamepad-variant"
+            size={18}
+            color={PURPLE}
+          />
           <Text style={styles.selectedGameBannerText}>{selectedGame.name}</Text>
           <TouchableOpacity onPress={() => setSelectedGame(null)}>
-            <MaterialCommunityIcons name="close-circle-outline" size={18} color="#9ca3af" />
+            <MaterialCommunityIcons
+              name="close-circle-outline"
+              size={18}
+              color="#9ca3af"
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -230,7 +247,11 @@ export default function RegisterLoanScreen() {
       {/* Pieces complete toggle */}
       <View style={styles.piecesRow}>
         <View style={styles.piecesLabel}>
-          <MaterialCommunityIcons name="puzzle-check-outline" size={18} color="#374151" />
+          <MaterialCommunityIcons
+            name="puzzle-check-outline"
+            size={18}
+            color="#374151"
+          />
           <Text style={styles.piecesText}>Todas las piezas completas</Text>
         </View>
         <Switch
@@ -346,7 +367,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: PURPLE,
   },
-  selectedGameBannerText: { flex: 1, fontSize: 15, fontWeight: "700", color: PURPLE },
+  selectedGameBannerText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "700",
+    color: PURPLE,
+  },
   piecesRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -360,7 +386,12 @@ const styles = StyleSheet.create({
   },
   piecesLabel: { flexDirection: "row", alignItems: "center", gap: 8 },
   piecesText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  piecesWarning: { fontSize: 12, color: "#F59E0B", marginTop: 6, marginLeft: 2 },
+  piecesWarning: {
+    fontSize: 12,
+    color: "#F59E0B",
+    marginTop: 6,
+    marginLeft: 2,
+  },
   btn: {
     backgroundColor: PURPLE,
     borderRadius: 12,

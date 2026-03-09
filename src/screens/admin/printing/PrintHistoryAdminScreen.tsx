@@ -93,7 +93,11 @@ export default function PrintHistoryAdminScreen() {
             </Text>
             {item.admin_name ? (
               <View style={styles.adminRow}>
-                <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                <MaterialCommunityIcons
+                  name="account-outline"
+                  size={12}
+                  color="#9ca3af"
+                />
                 <Text style={styles.adminName}>{item.admin_name}</Text>
               </View>
             ) : null}
@@ -151,7 +155,12 @@ const styles = StyleSheet.create({
   pages: { fontSize: 15, fontWeight: "600", color: "#222" },
   studentLine: { fontSize: 12, color: "#4b5563", marginTop: 2 },
   date: { fontSize: 12, color: "#888", marginTop: 2 },
-  adminRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  adminRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 3,
+  },
   adminName: { fontSize: 11, color: "#9ca3af" },
   cost: { fontSize: 14, fontWeight: "700", color: "#2E7D32" },
   costPaid: { color: "#C62828" },

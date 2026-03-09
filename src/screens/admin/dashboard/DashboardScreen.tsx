@@ -16,7 +16,12 @@ import { es } from "date-fns/locale";
 import { gamesService } from "../../../services/gamesService";
 import { printingService } from "../../../services/printingService";
 import { productsService } from "../../../services/productsService";
-import { searchService, SearchGameResult, SearchProductResult, SearchUserResult } from "../../../services/searchService";
+import {
+  searchService,
+  SearchGameResult,
+  SearchProductResult,
+  SearchUserResult,
+} from "../../../services/searchService";
 import { useAuthStore } from "../../../store/useAuthStore";
 import { useCubiculoStore } from "../../../store/useCubiculoStore";
 import { SUPER_ADMIN_ID } from "../../../types/auth.types";
@@ -57,9 +62,27 @@ interface MetricCard {
 }
 
 type SearchResult =
-  | { key: string; kind: "student"; title: string; subtitle: string; payload: SearchUserResult }
-  | { key: string; kind: "game"; title: string; subtitle: string; payload: SearchGameResult }
-  | { key: string; kind: "product"; title: string; subtitle: string; payload: SearchProductResult };
+  | {
+      key: string;
+      kind: "student";
+      title: string;
+      subtitle: string;
+      payload: SearchUserResult;
+    }
+  | {
+      key: string;
+      kind: "game";
+      title: string;
+      subtitle: string;
+      payload: SearchGameResult;
+    }
+  | {
+      key: string;
+      kind: "product";
+      title: string;
+      subtitle: string;
+      payload: SearchProductResult;
+    };
 
 type ServiceFilter = "all" | "games" | "sales" | "printing" | "admin";
 
@@ -141,7 +164,7 @@ function StatusChip({
   bg: string;
 }) {
   return (
-    <View style={[styles.statusChip, { backgroundColor: bg }]}> 
+    <View style={[styles.statusChip, { backgroundColor: bg }]}>
       <View style={[styles.statusDot, { backgroundColor: color }]} />
       <Text style={[styles.statusText, { color }]}>{label}</Text>
     </View>
@@ -150,9 +173,13 @@ function StatusChip({
 
 function MetricBox({ card }: { card: MetricCard }) {
   return (
-    <View style={[styles.metricCard, { backgroundColor: card.soft }]}> 
-      <View style={[styles.metricIcon, { backgroundColor: card.accent }]}> 
-        <MaterialCommunityIcons name={card.icon as any} size={18} color="#fff" />
+    <View style={[styles.metricCard, { backgroundColor: card.soft }]}>
+      <View style={[styles.metricIcon, { backgroundColor: card.accent }]}>
+        <MaterialCommunityIcons
+          name={card.icon as any}
+          size={18}
+          color="#fff"
+        />
       </View>
       <Text style={styles.metricTitle}>{card.title}</Text>
       <Text style={styles.metricValue}>{card.value}</Text>
@@ -175,14 +202,22 @@ function FilterChip({
       onPress={onPress}
       style={[styles.filterChip, active && styles.filterChipActive]}
     >
-      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+      <Text
+        style={[styles.filterChipText, active && styles.filterChipTextActive]}
+      >
         {label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-function CriticalCard({ item, navigation }: { item: CriticalItem; navigation: any }) {
+function CriticalCard({
+  item,
+  navigation,
+}: {
+  item: CriticalItem;
+  navigation: any;
+}) {
   return (
     <TouchableOpacity
       style={[styles.criticalCard, { backgroundColor: item.soft }]}
@@ -190,7 +225,11 @@ function CriticalCard({ item, navigation }: { item: CriticalItem; navigation: an
       activeOpacity={0.85}
     >
       <View style={[styles.criticalIcon, { backgroundColor: item.accent }]}>
-        <MaterialCommunityIcons name={item.icon as any} size={18} color="#fff" />
+        <MaterialCommunityIcons
+          name={item.icon as any}
+          size={18}
+          color="#fff"
+        />
       </View>
       <View style={styles.criticalTextBlock}>
         <Text style={styles.criticalTitle}>{item.title}</Text>
@@ -215,10 +254,13 @@ export default function DashboardScreen() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [loanHistory, setLoanHistory] = React.useState<GameLoan[]>([]);
   const [sales, setSales] = React.useState<Sale[]>([]);
-  const [printHistory, setPrintHistory] = React.useState<PrintHistoryItem[]>([]);
+  const [printHistory, setPrintHistory] = React.useState<PrintHistoryItem[]>(
+    [],
+  );
   const [cashStatus, setCashStatus] = React.useState<CashRegister | null>(null);
   const [query, setQuery] = React.useState("");
-  const [serviceFilter, setServiceFilter] = React.useState<ServiceFilter>("all");
+  const [serviceFilter, setServiceFilter] =
+    React.useState<ServiceFilter>("all");
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchResults, setSearchResults] = React.useState<SearchResult[]>([]);
 
@@ -228,15 +270,33 @@ export default function DashboardScreen() {
   const loadDashboard = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [loanResp, salesResp, cashResp, printResp, _gamesResp, productsResp] =
-        await Promise.all([
-          gamesOn ? gamesService.getLoanHistory().catch(() => []) : Promise.resolve([]),
-          productsOn ? productsService.getSales().catch(() => []) : Promise.resolve([]),
-          productsOn ? productsService.getCashRegisterStatus().catch(() => null) : Promise.resolve(null),
-          printOn ? printingService.getAllHistory().catch(() => []) : Promise.resolve([]),
-          gamesOn ? gamesService.getCatalog().catch(() => []) : Promise.resolve([]),
-          productsOn ? productsService.getCatalog().catch(() => []) : Promise.resolve([]),
-        ]);
+      const [
+        loanResp,
+        salesResp,
+        cashResp,
+        printResp,
+        _gamesResp,
+        productsResp,
+      ] = await Promise.all([
+        gamesOn
+          ? gamesService.getLoanHistory().catch(() => [])
+          : Promise.resolve([]),
+        productsOn
+          ? productsService.getSales().catch(() => [])
+          : Promise.resolve([]),
+        productsOn
+          ? productsService.getCashRegisterStatus().catch(() => null)
+          : Promise.resolve(null),
+        printOn
+          ? printingService.getAllHistory().catch(() => [])
+          : Promise.resolve([]),
+        gamesOn
+          ? gamesService.getCatalog().catch(() => [])
+          : Promise.resolve([]),
+        productsOn
+          ? productsService.getCatalog().catch(() => [])
+          : Promise.resolve([]),
+      ]);
 
       setLoanHistory(loanResp);
       setSales(salesResp);
@@ -264,7 +324,9 @@ export default function DashboardScreen() {
     );
   };
 
-  const activeLoans = loanHistory.filter((loan) => loan.status === "active").length;
+  const activeLoans = loanHistory.filter(
+    (loan) => loan.status === "active",
+  ).length;
   const overdueLoans = loanHistory.filter((loan) => {
     if (loan.status === "overdue") return true;
     if (loan.status !== "active" || !loan.due_at) return false;
@@ -273,8 +335,13 @@ export default function DashboardScreen() {
   const todaySales = sales.filter((sale) => isSameDay(sale.sold_at));
   const todaySalesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
   const todayPrints = printHistory.filter((item) => isSameDay(item.printed_at));
-  const todayPrintPages = todayPrints.reduce((sum, item) => sum + item.pages, 0);
-  const lowStockProducts = products.filter((product) => product.stock > 0 && product.stock <= 3).length;
+  const todayPrintPages = todayPrints.reduce(
+    (sum, item) => sum + item.pages,
+    0,
+  );
+  const lowStockProducts = products.filter(
+    (product) => product.stock > 0 && product.stock <= 3,
+  ).length;
 
   const criticalItems: CriticalItem[] = [
     overdueLoans > 0 && {
@@ -311,7 +378,10 @@ export default function DashboardScreen() {
       key: "active-loans",
       title: "Préstamos activos",
       value: `${activeLoans}`,
-      helper: activeLoans === 1 ? "1 préstamo pendiente" : `${activeLoans} pendientes`,
+      helper:
+        activeLoans === 1
+          ? "1 préstamo pendiente"
+          : `${activeLoans} pendientes`,
       accent: PURPLE,
       soft: "#ede9fe",
       icon: "hand-coin-outline",
@@ -332,7 +402,8 @@ export default function DashboardScreen() {
       key: "today-sales",
       title: "Ventas de hoy",
       value: `$${todaySalesTotal.toFixed(2)}`,
-      helper: todaySales.length === 1 ? "1 venta" : `${todaySales.length} ventas`,
+      helper:
+        todaySales.length === 1 ? "1 venta" : `${todaySales.length} ventas`,
       accent: "#059669",
       soft: "#d1fae5",
       icon: "cart-check",
@@ -341,7 +412,10 @@ export default function DashboardScreen() {
       key: "today-prints",
       title: "Impresiones de hoy",
       value: `${todayPrintPages}`,
-      helper: todayPrints.length === 1 ? "1 registro" : `${todayPrints.length} registros`,
+      helper:
+        todayPrints.length === 1
+          ? "1 registro"
+          : `${todayPrints.length} registros`,
       accent: "#0284c7",
       soft: "#e0f2fe",
       icon: "printer-outline",
@@ -388,13 +462,14 @@ export default function DashboardScreen() {
             bg: "#BE123C",
             subtitle: "Ventas bloqueadas",
           }),
-    gamesOn && activeLoans > 0 && {
-      screen: "LoanHistory",
-      title: "Historial",
-      icon: "history",
-      bg: "#475569",
-      subtitle: "Ver préstamos activos",
-    },
+    gamesOn &&
+      activeLoans > 0 && {
+        screen: "LoanHistory",
+        title: "Historial",
+        icon: "history",
+        bg: "#475569",
+        subtitle: "Ver préstamos activos",
+      },
   ].filter(Boolean) as QuickCard[];
 
   const inventoryCards: NavCard[] = [
@@ -533,8 +608,10 @@ export default function DashboardScreen() {
     serviceFilter === "all"
       ? inventoryCards
       : inventoryCards.filter((card) => {
-          if (serviceFilter === "games") return ["Inventory"].includes(card.screen);
-          if (serviceFilter === "sales") return ["InventoryProduct", "CashRegister"].includes(card.screen);
+          if (serviceFilter === "games")
+            return ["Inventory"].includes(card.screen);
+          if (serviceFilter === "sales")
+            return ["InventoryProduct", "CashRegister"].includes(card.screen);
           return false;
         });
 
@@ -544,7 +621,8 @@ export default function DashboardScreen() {
       : reportCards.filter((card) => {
           if (serviceFilter === "games") return card.screen === "LoanHistory";
           if (serviceFilter === "sales") return card.screen === "SalesReport";
-          if (serviceFilter === "printing") return card.screen === "PrintHistoryAdmin";
+          if (serviceFilter === "printing")
+            return card.screen === "PrintHistoryAdmin";
           return false;
         });
 
@@ -556,8 +634,12 @@ export default function DashboardScreen() {
 
   const filteredQuickCards = quickCards.filter((card) => {
     if (serviceFilter === "all") return true;
-    if (serviceFilter === "games") return ["RegisterLoan", "RegisterReturn", "LoanHistory"].includes(card.screen);
-    if (serviceFilter === "sales") return ["RegisterSale", "CashRegister"].includes(card.screen);
+    if (serviceFilter === "games")
+      return ["RegisterLoan", "RegisterReturn", "LoanHistory"].includes(
+        card.screen,
+      );
+    if (serviceFilter === "sales")
+      return ["RegisterSale", "CashRegister"].includes(card.screen);
     if (serviceFilter === "printing") return card.screen === "RegisterPrint";
     return false;
   });
@@ -568,7 +650,9 @@ export default function DashboardScreen() {
       return;
     }
     if (result.kind === "product") {
-      navigation.navigate("RegisterSale", { preselectedProductId: result.payload.id });
+      navigation.navigate("RegisterSale", {
+        preselectedProductId: result.payload.id,
+      });
       return;
     }
   };
@@ -586,7 +670,8 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>Hola, {firstName} 👋</Text>
             <Text style={styles.date}>{today}</Text>
             <Text style={styles.heroSub}>
-              Centraliza operaciones, reportes y herramientas desde un solo lugar.
+              Centraliza operaciones, reportes y herramientas desde un solo
+              lugar.
             </Text>
           </View>
           <View style={styles.cubiculoBadge}>
@@ -618,7 +703,9 @@ export default function DashboardScreen() {
         {loading ? (
           <View style={styles.metricsLoading}>
             <ActivityIndicator color={PURPLE} />
-            <Text style={styles.metricsLoadingText}>Actualizando métricas...</Text>
+            <Text style={styles.metricsLoadingText}>
+              Actualizando métricas...
+            </Text>
           </View>
         ) : (
           <View style={styles.metricsGrid}>
@@ -634,7 +721,11 @@ export default function DashboardScreen() {
           <Text style={styles.sectionLabel}>Pendientes críticos</Text>
           <View style={styles.criticalList}>
             {criticalItems.map((item) => (
-              <CriticalCard key={item.key} item={item} navigation={navigation} />
+              <CriticalCard
+                key={item.key}
+                item={item}
+                navigation={navigation}
+              />
             ))}
           </View>
         </View>
@@ -643,11 +734,39 @@ export default function DashboardScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Filtros rápidos</Text>
         <View style={styles.filterRow}>
-          <FilterChip label="Todos" active={serviceFilter === "all"} onPress={() => setServiceFilter("all")} />
-          {gamesOn && <FilterChip label="Juegos" active={serviceFilter === "games"} onPress={() => setServiceFilter("games")} />}
-          {productsOn && <FilterChip label="Ventas" active={serviceFilter === "sales"} onPress={() => setServiceFilter("sales")} />}
-          {printOn && <FilterChip label="Impresiones" active={serviceFilter === "printing"} onPress={() => setServiceFilter("printing")} />}
-          {isSuperAdmin && <FilterChip label="Administración" active={serviceFilter === "admin"} onPress={() => setServiceFilter("admin")} />}
+          <FilterChip
+            label="Todos"
+            active={serviceFilter === "all"}
+            onPress={() => setServiceFilter("all")}
+          />
+          {gamesOn && (
+            <FilterChip
+              label="Juegos"
+              active={serviceFilter === "games"}
+              onPress={() => setServiceFilter("games")}
+            />
+          )}
+          {productsOn && (
+            <FilterChip
+              label="Ventas"
+              active={serviceFilter === "sales"}
+              onPress={() => setServiceFilter("sales")}
+            />
+          )}
+          {printOn && (
+            <FilterChip
+              label="Impresiones"
+              active={serviceFilter === "printing"}
+              onPress={() => setServiceFilter("printing")}
+            />
+          )}
+          {isSuperAdmin && (
+            <FilterChip
+              label="Administración"
+              active={serviceFilter === "admin"}
+              onPress={() => setServiceFilter("admin")}
+            />
+          )}
         </View>
       </View>
 
@@ -666,7 +785,11 @@ export default function DashboardScreen() {
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery("")}>
-                <MaterialCommunityIcons name="close-circle" size={18} color="#cbd5e1" />
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={18}
+                  color="#cbd5e1"
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -678,7 +801,9 @@ export default function DashboardScreen() {
                   <Text style={styles.searchLoadingText}>Buscando...</Text>
                 </View>
               ) : searchResults.length === 0 ? (
-                <Text style={styles.emptySearch}>Sin resultados para "{query}"</Text>
+                <Text style={styles.emptySearch}>
+                  Sin resultados para "{query}"
+                </Text>
               ) : (
                 searchResults.map((result) => (
                   <View key={result.key} style={styles.searchRow}>
@@ -716,7 +841,9 @@ export default function DashboardScreen() {
                               })
                             }
                           >
-                            <Text style={styles.searchActionText}>Préstamo</Text>
+                            <Text style={styles.searchActionText}>
+                              Préstamo
+                            </Text>
                           </TouchableOpacity>
                         )}
                         {printOn && (
@@ -728,7 +855,9 @@ export default function DashboardScreen() {
                               })
                             }
                           >
-                            <Text style={styles.searchActionText}>Impresión</Text>
+                            <Text style={styles.searchActionText}>
+                              Impresión
+                            </Text>
                           </TouchableOpacity>
                         )}
                         {productsOn && (
@@ -736,9 +865,14 @@ export default function DashboardScreen() {
                             style={styles.searchActionBtn}
                             onPress={() =>
                               navigation.navigate(
-                                cashStatus?.status === "open" ? "RegisterSale" : "CashRegister",
                                 cashStatus?.status === "open"
-                                  ? { preselectedStudentId: result.payload.student_id }
+                                  ? "RegisterSale"
+                                  : "CashRegister",
+                                cashStatus?.status === "open"
+                                  ? {
+                                      preselectedStudentId:
+                                        result.payload.student_id,
+                                    }
                                   : undefined,
                               )
                             }
@@ -766,7 +900,10 @@ export default function DashboardScreen() {
             {filteredQuickCards.map((card) => (
               <TouchableOpacity
                 key={card.screen}
-                style={[styles.quickCard, { backgroundColor: card.bg, width: CARD_W }]}
+                style={[
+                  styles.quickCard,
+                  { backgroundColor: card.bg, width: CARD_W },
+                ]}
                 onPress={() => navigation.navigate(card.screen)}
                 activeOpacity={0.85}
               >

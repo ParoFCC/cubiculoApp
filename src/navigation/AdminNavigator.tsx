@@ -123,7 +123,11 @@ function HomeStack() {
                 onPress={() => navigation.navigate("QrCodes")}
                 style={styles.headerIconBtn}
               >
-                <MaterialCommunityIcons name="qrcode" size={20} color={PURPLE} />
+                <MaterialCommunityIcons
+                  name="qrcode"
+                  size={20}
+                  color={PURPLE}
+                />
               </TouchableOpacity>
             </HeaderCluster>
           ),
@@ -155,7 +159,11 @@ function HomeStack() {
                 onPress={() => navigation.navigate("PrintHistoryAdmin")}
                 style={styles.headerPillBtn}
               >
-                <MaterialCommunityIcons name="history" size={16} color={PURPLE} />
+                <MaterialCommunityIcons
+                  name="history"
+                  size={16}
+                  color={PURPLE}
+                />
                 <Text style={styles.headerPillBtnText}>Historial</Text>
               </TouchableOpacity>
             </HeaderCluster>
@@ -183,7 +191,11 @@ function HomeStack() {
                 onPress={() => navigation.navigate("CashRegister")}
                 style={styles.headerPillBtn}
               >
-                <MaterialCommunityIcons name="cash-register" size={16} color={PURPLE} />
+                <MaterialCommunityIcons
+                  name="cash-register"
+                  size={16}
+                  color={PURPLE}
+                />
                 <Text style={styles.headerPillBtnText}>Caja</Text>
               </TouchableOpacity>
             </HeaderCluster>

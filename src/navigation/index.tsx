@@ -20,10 +20,10 @@ const linking: LinkingOptions<any> = {
           // All operational screens live under HomeTab → HomeStack
           HomeTab: {
             screens: {
-              RegisterLoan: { path: "loan" },   // cubiculoapp://loan?game_id=<uuid>
+              RegisterLoan: { path: "loan" }, // cubiculoapp://loan?game_id=<uuid>
               RegisterReturn: { path: "return" }, // cubiculoapp://return
-              RegisterPrint: { path: "print" },   // cubiculoapp://print
-              RegisterSale: { path: "sale" },     // cubiculoapp://sale
+              RegisterPrint: { path: "print" }, // cubiculoapp://print
+              RegisterSale: { path: "sale" }, // cubiculoapp://sale
             },
           },
           // Asistencia: cubiculoapp://attendance

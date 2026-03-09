@@ -36,7 +36,10 @@ function groupByDay(records: AttendanceRecord[]): GroupedDay[] {
     if (isToday(d)) label = "Hoy";
     else if (isYesterday(d)) label = "Ayer";
     else label = format(d, "EEEE, d 'de' MMMM yyyy", { locale: es });
-    return { dateLabel: label.charAt(0).toUpperCase() + label.slice(1), records: recs };
+    return {
+      dateLabel: label.charAt(0).toUpperCase() + label.slice(1),
+      records: recs,
+    };
   });
 }
 
@@ -86,7 +89,11 @@ export default function AttendanceHistoryScreen() {
       style={styles.root}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={PURPLE} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={PURPLE}
+        />
       }
       ListHeaderComponent={
         isSuperAdmin ? (
@@ -95,7 +102,9 @@ export default function AttendanceHistoryScreen() {
               style={[styles.toggleBtn, !showAll && styles.toggleBtnActive]}
               onPress={() => setShowAll(false)}
             >
-              <Text style={[styles.toggleText, !showAll && styles.toggleTextActive]}>
+              <Text
+                style={[styles.toggleText, !showAll && styles.toggleTextActive]}
+              >
                 Mis registros
               </Text>
             </TouchableOpacity>
@@ -103,7 +112,9 @@ export default function AttendanceHistoryScreen() {
               style={[styles.toggleBtn, showAll && styles.toggleBtnActive]}
               onPress={() => setShowAll(true)}
             >
-              <Text style={[styles.toggleText, showAll && styles.toggleTextActive]}>
+              <Text
+                style={[styles.toggleText, showAll && styles.toggleTextActive]}
+              >
                 Todos los admins
               </Text>
             </TouchableOpacity>
@@ -114,7 +125,11 @@ export default function AttendanceHistoryScreen() {
       keyExtractor={(item) => item.dateLabel}
       ListEmptyComponent={
         <View style={styles.emptyWrap}>
-          <MaterialCommunityIcons name="calendar-clock" size={52} color="#d1d5db" />
+          <MaterialCommunityIcons
+            name="calendar-clock"
+            size={52}
+            color="#d1d5db"
+          />
           <Text style={styles.empty}>Sin registros de asistencia.</Text>
         </View>
       }
@@ -135,7 +150,11 @@ export default function AttendanceHistoryScreen() {
                 </Text>
                 {showAll && r.admin_name ? (
                   <View style={styles.adminRow}>
-                    <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={12}
+                      color="#9ca3af"
+                    />
                     <Text style={styles.adminName}>{r.admin_name}</Text>
                   </View>
                 ) : null}
@@ -145,7 +164,13 @@ export default function AttendanceHistoryScreen() {
                   {format(new Date(r.recorded_at), "HH:mm")}
                 </Text>
                 <MaterialCommunityIcons
-                  name={r.method === "qr" ? "qrcode-scan" : r.method === "nfc" ? "nfc" : "gesture-tap-button"}
+                  name={
+                    r.method === "qr"
+                      ? "qrcode-scan"
+                      : r.method === "nfc"
+                      ? "nfc"
+                      : "gesture-tap-button"
+                  }
                   size={13}
                   color="#d1d5db"
                 />
@@ -202,7 +227,12 @@ const styles = StyleSheet.create({
   dotExit: { backgroundColor: RED },
   rowBody: { flex: 1 },
   rowType: { fontSize: 15, fontWeight: "600", color: "#1a1a2e" },
-  adminRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  adminRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
   adminName: { fontSize: 12, color: "#9ca3af" },
   rowRight: { alignItems: "flex-end", gap: 2 },
   rowTime: { fontSize: 15, fontWeight: "700", color: "#374151" },

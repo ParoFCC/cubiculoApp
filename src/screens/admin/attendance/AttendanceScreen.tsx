@@ -15,7 +15,10 @@ import { es } from "date-fns/locale";
 import Toast from "react-native-toast-message";
 import { attendanceService } from "../../../services/attendanceService";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { AttendanceRecord, AttendanceStatus } from "../../../types/attendance.types";
+import {
+  AttendanceRecord,
+  AttendanceStatus,
+} from "../../../types/attendance.types";
 
 const PURPLE = "#5C35D9";
 const PURPLE_LIGHT = "#EEE9FF";
@@ -69,7 +72,12 @@ export default function AttendanceScreen() {
       const history = await attendanceService.getHistory(user?.id, todayStr);
       setTodayRecords(history);
       const action = result.status === "in" ? "entrada" : "salida";
-      Toast.show({ type: "success", text1: `✅ ${action.charAt(0).toUpperCase() + action.slice(1)} registrada` });
+      Toast.show({
+        type: "success",
+        text1: `✅ ${
+          action.charAt(0).toUpperCase() + action.slice(1)
+        } registrada`,
+      });
     } catch {
       Toast.show({ type: "error", text1: "No se pudo registrar" });
     } finally {
@@ -92,12 +100,21 @@ export default function AttendanceScreen() {
       style={styles.root}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={PURPLE} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={PURPLE}
+        />
       }
       ListHeaderComponent={
         <>
           {/* Status card */}
-          <View style={[styles.statusCard, { backgroundColor: isIn ? GREEN_LIGHT : RED_LIGHT }]}>
+          <View
+            style={[
+              styles.statusCard,
+              { backgroundColor: isIn ? GREEN_LIGHT : RED_LIGHT },
+            ]}
+          >
             <MaterialCommunityIcons
               name={isIn ? "check-circle" : "clock-outline"}
               size={48}
@@ -109,7 +126,11 @@ export default function AttendanceScreen() {
             {statusData?.last_record && (
               <Text style={styles.lastTime}>
                 Último registro:{" "}
-                {format(new Date(statusData.last_record.recorded_at), "HH:mm, d MMM", { locale: es })}
+                {format(
+                  new Date(statusData.last_record.recorded_at),
+                  "HH:mm, d MMM",
+                  { locale: es },
+                )}
               </Text>
             )}
           </View>
@@ -148,7 +169,11 @@ export default function AttendanceScreen() {
           >
             <MaterialCommunityIcons name="history" size={18} color={PURPLE} />
             <Text style={styles.historyBtnText}>Ver historial completo</Text>
-            <MaterialCommunityIcons name="chevron-right" size={18} color={PURPLE} />
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={PURPLE}
+            />
           </TouchableOpacity>
 
           {/* Today's section header */}
@@ -157,9 +182,7 @@ export default function AttendanceScreen() {
       }
       data={todayRecords}
       keyExtractor={(item) => item.id}
-      ListEmptyComponent={
-        <Text style={styles.empty}>Sin registros hoy.</Text>
-      }
+      ListEmptyComponent={<Text style={styles.empty}>Sin registros hoy.</Text>}
       renderItem={({ item }) => (
         <View style={styles.row}>
           <View
@@ -174,7 +197,13 @@ export default function AttendanceScreen() {
             </Text>
             <View style={styles.methodRow}>
               <MaterialCommunityIcons
-                name={item.method === "qr" ? "qrcode-scan" : item.method === "nfc" ? "nfc" : "gesture-tap-button"}
+                name={
+                  item.method === "qr"
+                    ? "qrcode-scan"
+                    : item.method === "nfc"
+                    ? "nfc"
+                    : "gesture-tap-button"
+                }
                 size={12}
                 color="#9ca3af"
               />
@@ -223,7 +252,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   historyBtnText: { flex: 1, fontSize: 14, fontWeight: "600", color: PURPLE },
-  sectionTitle: { fontSize: 13, fontWeight: "700", color: "#9ca3af", marginTop: 4, letterSpacing: 0.5 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#9ca3af",
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
   empty: { textAlign: "center", color: "#999", marginTop: 12, fontSize: 14 },
   row: {
     backgroundColor: "#fff",
@@ -238,7 +273,12 @@ const styles = StyleSheet.create({
   dotExit: { backgroundColor: RED },
   rowBody: { flex: 1 },
   rowType: { fontSize: 15, fontWeight: "600", color: "#1a1a2e" },
-  methodRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  methodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
   methodText: { fontSize: 12, color: "#9ca3af" },
   rowTime: { fontSize: 15, fontWeight: "700", color: "#374151" },
 });

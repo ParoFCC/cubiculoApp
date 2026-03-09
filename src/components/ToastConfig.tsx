@@ -93,10 +93,14 @@ const toastConfig: ToastConfig = {
       <View style={styles.infoRow}>
         <View style={styles.infoContent}>
           {safeToastText(text1) ? (
-            <Text style={[styles.title, styles.infoTitle]}>{safeToastText(text1)}</Text>
+            <Text style={[styles.title, styles.infoTitle]}>
+              {safeToastText(text1)}
+            </Text>
           ) : null}
           {safeToastText(text2) ? (
-            <Text style={[styles.message, styles.infoMessage]}>{safeToastText(text2)}</Text>
+            <Text style={[styles.message, styles.infoMessage]}>
+              {safeToastText(text2)}
+            </Text>
           ) : null}
         </View>
       </View>

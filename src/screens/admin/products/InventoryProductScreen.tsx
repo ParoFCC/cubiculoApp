@@ -68,7 +68,11 @@ export default function InventoryProductScreen({ navigation }: Props) {
           onPress: async () => {
             try {
               await productsService.deleteProduct(item.id);
-              Toast.show({ type: "success", text1: "Producto eliminado", text2: item.name });
+              Toast.show({
+                type: "success",
+                text1: "Producto eliminado",
+                text2: item.name,
+              });
               fetchProducts(true);
             } catch (err: any) {
               Toast.show({
@@ -147,7 +151,13 @@ export default function InventoryProductScreen({ navigation }: Props) {
         image_url: form.image_url || undefined,
         is_active: true,
       });
-      setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
+      setForm({
+        name: "",
+        price: "",
+        stock: "",
+        category: "otro",
+        image_url: "",
+      });
       setShowModal(false);
       fetchProducts();
       Toast.show({
@@ -193,7 +203,11 @@ export default function InventoryProductScreen({ navigation }: Props) {
           style={[styles.qaCard, styles.qaCardPrimary]}
           onPress={() => setShowModal(true)}
         >
-          <MaterialCommunityIcons name="plus-circle-outline" size={24} color="#fff" />
+          <MaterialCommunityIcons
+            name="plus-circle-outline"
+            size={24}
+            color="#fff"
+          />
           <Text style={styles.qaCardTextPrimary}>Agregar{"\n"}Producto</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -207,7 +221,11 @@ export default function InventoryProductScreen({ navigation }: Props) {
           style={styles.qaCard}
           onPress={() => navigation.navigate("CashRegister")}
         >
-          <MaterialCommunityIcons name="cash-register" size={24} color={PURPLE} />
+          <MaterialCommunityIcons
+            name="cash-register"
+            size={24}
+            color={PURPLE}
+          />
           <Text style={styles.qaCardText}>Abrir{"\n"}Caja</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -235,13 +253,19 @@ export default function InventoryProductScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="package-variant-closed" size={56} color="#d1d5db" />
+            <MaterialCommunityIcons
+              name="package-variant-closed"
+              size={56}
+              color="#d1d5db"
+            />
             <Text style={styles.empty}>Sin productos registrados</Text>
             <TouchableOpacity
               style={styles.emptyAddBtn}
               onPress={() => setShowModal(true)}
             >
-              <Text style={styles.emptyAddBtnText}>+ Agregar primer producto</Text>
+              <Text style={styles.emptyAddBtnText}>
+                + Agregar primer producto
+              </Text>
             </TouchableOpacity>
           </View>
         }
@@ -338,7 +362,9 @@ export default function InventoryProductScreen({ navigation }: Props) {
                   resizeMode="cover"
                 />
               ) : (
-                <Text style={styles.imagePickerText}>📷 Agregar imagen (opcional)</Text>
+                <Text style={styles.imagePickerText}>
+                  📷 Agregar imagen (opcional)
+                </Text>
               )}
             </TouchableOpacity>
             <View style={styles.modalActions}>

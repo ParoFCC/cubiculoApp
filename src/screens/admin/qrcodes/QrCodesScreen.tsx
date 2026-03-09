@@ -86,7 +86,9 @@ function QrSection({
       {items.map((item) => (
         <View key={item.key} style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={[styles.iconBox, { backgroundColor: item.accentSoft }]}>
+            <View
+              style={[styles.iconBox, { backgroundColor: item.accentSoft }]}
+            >
               <MaterialCommunityIcons
                 name={item.icon as any}
                 size={22}
@@ -108,8 +110,12 @@ function QrSection({
               />
             </View>
             <View style={styles.metaColumn}>
-              <View style={[styles.urlBadge, { backgroundColor: item.accentSoft }]}>
-                <Text style={[styles.urlBadgeText, { color: item.accent }]}>URL lista</Text>
+              <View
+                style={[styles.urlBadge, { backgroundColor: item.accentSoft }]}
+              >
+                <Text style={[styles.urlBadgeText, { color: item.accent }]}>
+                  URL lista
+                </Text>
               </View>
               <Text style={styles.urlText}>{item.url}</Text>
               <Text style={styles.helperText}>
@@ -118,8 +124,15 @@ function QrSection({
             </View>
           </View>
           <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.viewBtn} onPress={() => onPreview(item)}>
-              <MaterialCommunityIcons name="magnify-plus-outline" size={16} color={PURPLE} />
+            <TouchableOpacity
+              style={styles.viewBtn}
+              onPress={() => onPreview(item)}
+            >
+              <MaterialCommunityIcons
+                name="magnify-plus-outline"
+                size={16}
+                color={PURPLE}
+              />
               <Text style={styles.viewBtnText}>Vista grande</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -131,7 +144,11 @@ function QrSection({
                 })
               }
             >
-              <MaterialCommunityIcons name="share-variant" size={16} color="#fff" />
+              <MaterialCommunityIcons
+                name="share-variant"
+                size={16}
+                color="#fff"
+              />
               <Text style={styles.shareBtnText}>Compartir</Text>
             </TouchableOpacity>
           </View>
@@ -143,7 +160,9 @@ function QrSection({
 
 export default function QrCodesScreen() {
   const [selectedItem, setSelectedItem] = React.useState<QrItem | null>(null);
-  const operationalItems = QR_ITEMS.filter((item) => item.group === "operacion");
+  const operationalItems = QR_ITEMS.filter(
+    (item) => item.group === "operacion",
+  );
   const controlItems = QR_ITEMS.filter((item) => item.group === "control");
 
   return (
@@ -155,23 +174,38 @@ export default function QrCodesScreen() {
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Códigos QR listos para imprimir</Text>
         <Text style={styles.heroText}>
-          Centraliza accesos rápidos para operaciones recurrentes. Los QR de préstamo por juego siguen viviendo dentro del catálogo de juegos.
+          Centraliza accesos rápidos para operaciones recurrentes. Los QR de
+          préstamo por juego siguen viviendo dentro del catálogo de juegos.
         </Text>
         <View style={styles.tipRow}>
           <View style={styles.tipBadge}>
-            <MaterialCommunityIcons name="printer-outline" size={14} color={PURPLE} />
+            <MaterialCommunityIcons
+              name="printer-outline"
+              size={14}
+              color={PURPLE}
+            />
             <Text style={styles.tipText}>Úsalos en mostrador o pared</Text>
           </View>
           <View style={styles.tipBadge}>
-            <MaterialCommunityIcons name="share-variant" size={14} color={PURPLE} />
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={14}
+              color={PURPLE}
+            />
             <Text style={styles.tipText}>Compártelos por WhatsApp</Text>
           </View>
         </View>
       </View>
       <View style={styles.infoBox}>
-        <MaterialCommunityIcons name="information-outline" size={16} color={PURPLE} />
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={16}
+          color={PURPLE}
+        />
         <Text style={styles.infoText}>
-          Si necesitas un QR que abra un préstamo con juego específico, ese se genera desde la pantalla de Juegos para incluir el identificador del juego.
+          Si necesitas un QR que abra un préstamo con juego específico, ese se
+          genera desde la pantalla de Juegos para incluir el identificador del
+          juego.
         </Text>
       </View>
 
@@ -207,7 +241,10 @@ export default function QrCodesScreen() {
             <Text style={styles.modalUrl}>{selectedItem?.url}</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.shareBtn, { backgroundColor: selectedItem?.accent ?? PURPLE }]}
+                style={[
+                  styles.shareBtn,
+                  { backgroundColor: selectedItem?.accent ?? PURPLE },
+                ]}
                 onPress={() => {
                   if (!selectedItem) return;
                   Share.share({

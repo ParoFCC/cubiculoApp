@@ -55,8 +55,12 @@ export default function RegisterPrintScreen() {
         printingService.getStudentBalance(normalizedId),
       ]);
 
-      setStudentInfo(userResult.status === "fulfilled" ? userResult.value : null);
-      setBalance(balanceResult.status === "fulfilled" ? balanceResult.value : null);
+      setStudentInfo(
+        userResult.status === "fulfilled" ? userResult.value : null,
+      );
+      setBalance(
+        balanceResult.status === "fulfilled" ? balanceResult.value : null,
+      );
     } finally {
       setLoadingBalance(false);
       setLookingUp(false);
@@ -152,8 +156,8 @@ export default function RegisterPrintScreen() {
                 : "💰 Impresión de pago"}
             </Text>
             <Text style={styles.resultBody}>
-              {lastResult.studentId} · {" "}
-              {lastResult.pages} página{lastResult.pages !== 1 ? "s" : ""} —{" "}
+              {lastResult.studentId} · {lastResult.pages} página
+              {lastResult.pages !== 1 ? "s" : ""} —{" "}
               {lastResult.type === "free"
                 ? "Sin costo"
                 : `$${lastResult.cost.toFixed(2)}`}
@@ -191,21 +195,25 @@ export default function RegisterPrintScreen() {
             </View>
           </View>
         )}
-        {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
-          <View style={[styles.studentCard, styles.studentCardGuest]}>
-            <MaterialCommunityIcons
-              name="account-question"
-              size={20}
-              color="#D97706"
-            />
-            <View>
-              <Text style={styles.studentCardName}>Alumno no registrado</Text>
-              <Text style={styles.studentCardSub}>
-                Se tomará la matrícula para controlar saldo y costo de esta impresión.
-              </Text>
+        {!lookingUp &&
+          hasLookupResult &&
+          !studentInfo &&
+          !!studentId.trim() && (
+            <View style={[styles.studentCard, styles.studentCardGuest]}>
+              <MaterialCommunityIcons
+                name="account-question"
+                size={20}
+                color="#D97706"
+              />
+              <View>
+                <Text style={styles.studentCardName}>Alumno no registrado</Text>
+                <Text style={styles.studentCardSub}>
+                  Se tomará la matrícula para controlar saldo y costo de esta
+                  impresión.
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
         {!lookingUp && hasLookupResult && !!studentId.trim() && (
           <View style={styles.balanceCard}>
             <View style={styles.balanceHeader}>
@@ -219,21 +227,31 @@ export default function RegisterPrintScreen() {
             {loadingBalance ? (
               <View style={styles.balanceLoadingRow}>
                 <ActivityIndicator size="small" color={PURPLE} />
-                <Text style={styles.balanceLoadingText}>Consultando saldo...</Text>
+                <Text style={styles.balanceLoadingText}>
+                  Consultando saldo...
+                </Text>
               </View>
             ) : balance ? (
               <>
                 <View style={styles.balanceStatsRow}>
                   <View style={styles.balanceStatBox}>
-                    <Text style={styles.balanceStatLabel}>Gratis restantes</Text>
-                    <Text style={styles.balanceStatValue}>{balance.free_remaining}</Text>
+                    <Text style={styles.balanceStatLabel}>
+                      Gratis restantes
+                    </Text>
+                    <Text style={styles.balanceStatValue}>
+                      {balance.free_remaining}
+                    </Text>
                   </View>
                   <View style={styles.balanceStatBox}>
                     <Text style={styles.balanceStatLabel}>Saldo total</Text>
-                    <Text style={styles.balanceStatValue}>{balance.free_total}</Text>
+                    <Text style={styles.balanceStatValue}>
+                      {balance.free_total}
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.balancePeriod}>Periodo: {balance.period}</Text>
+                <Text style={styles.balancePeriod}>
+                  Periodo: {balance.period}
+                </Text>
               </>
             ) : (
               <Text style={styles.balanceLoadingText}>
@@ -242,11 +260,16 @@ export default function RegisterPrintScreen() {
             )}
           </View>
         )}
-        {!lookingUp && hasLookupResult && studentId.trim() && !studentInfo && !loading && (
-          <Text style={styles.studentNotFound}>
-            No existe un usuario con esa matrícula, pero sí puedes registrar la impresión.
-          </Text>
-        )}
+        {!lookingUp &&
+          hasLookupResult &&
+          studentId.trim() &&
+          !studentInfo &&
+          !loading && (
+            <Text style={styles.studentNotFound}>
+              No existe un usuario con esa matrícula, pero sí puedes registrar
+              la impresión.
+            </Text>
+          )}
 
         <Text style={styles.label}>Número de Páginas</Text>
         <TextInput
@@ -287,7 +310,9 @@ export default function RegisterPrintScreen() {
             <View style={[styles.previewRow, styles.previewRowTotal]}>
               <Text style={styles.previewTotalLabel}>Total estimado</Text>
               <Text style={styles.previewTotalValue}>
-                {estimatedTotal <= 0 ? "Sin costo" : `$${estimatedTotal.toFixed(2)}`}
+                {estimatedTotal <= 0
+                  ? "Sin costo"
+                  : `$${estimatedTotal.toFixed(2)}`}
               </Text>
             </View>
           </View>

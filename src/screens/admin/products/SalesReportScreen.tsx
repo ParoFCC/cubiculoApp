@@ -157,8 +157,14 @@ export default function SalesReportScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="receipt-text-outline" size={52} color="#d1d5db" />
-            <Text style={styles.empty}>Sin ventas en el período seleccionado.</Text>
+            <MaterialCommunityIcons
+              name="receipt-text-outline"
+              size={52}
+              color="#d1d5db"
+            />
+            <Text style={styles.empty}>
+              Sin ventas en el período seleccionado.
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -196,7 +202,11 @@ export default function SalesReportScreen() {
             ) : null}
             {item.admin_name ? (
               <View style={styles.adminRow}>
-                <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                <MaterialCommunityIcons
+                  name="account-outline"
+                  size={12}
+                  color="#9ca3af"
+                />
                 <Text style={styles.adminName}>{item.admin_name}</Text>
               </View>
             ) : null}

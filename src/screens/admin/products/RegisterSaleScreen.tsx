@@ -36,7 +36,9 @@ export default function RegisterSaleScreen({ navigation }: Props) {
   const [studentInfo, setStudentInfo] = useState<User | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [hasLookupResult, setHasLookupResult] = useState(false);
-  const [cashStatus, setCashStatus] = useState<CashRegister | null | "loading">("loading");
+  const [cashStatus, setCashStatus] = useState<CashRegister | null | "loading">(
+    "loading",
+  );
   const [presetApplied, setPresetApplied] = useState(false);
 
   const fetchProducts = useCallback(async (quiet = false) => {
@@ -72,10 +74,16 @@ export default function RegisterSaleScreen({ navigation }: Props) {
   }, [routeParams?.preselectedStudentId]);
 
   useEffect(() => {
-    if (!routeParams?.preselectedProductId || presetApplied || products.length === 0) {
+    if (
+      !routeParams?.preselectedProductId ||
+      presetApplied ||
+      products.length === 0
+    ) {
       return;
     }
-    const product = products.find((item) => item.id === routeParams.preselectedProductId);
+    const product = products.find(
+      (item) => item.id === routeParams.preselectedProductId,
+    );
     if (product) {
       addToCart(product);
       setPresetApplied(true);
@@ -191,7 +199,12 @@ export default function RegisterSaleScreen({ navigation }: Props) {
           style={styles.openCashBtn}
           onPress={() => navigation.navigate("CashRegister")}
         >
-          <MaterialCommunityIcons name="cash-register" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <MaterialCommunityIcons
+            name="cash-register"
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
           <Text style={styles.openCashBtnText}>Ir a Caja</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.retryBtn} onPress={fetchCash}>
@@ -231,22 +244,30 @@ export default function RegisterSaleScreen({ navigation }: Props) {
             >
               <View style={styles.cashStatusLeft}>
                 <MaterialCommunityIcons
-                  name={cashStatus?.status === "open" ? "cash-check" : "cash-remove"}
+                  name={
+                    cashStatus?.status === "open" ? "cash-check" : "cash-remove"
+                  }
                   size={18}
                   color={cashStatus?.status === "open" ? "#15803d" : "#b45309"}
                 />
                 <View>
                   <Text style={styles.cashStatusTitle}>
-                    {cashStatus?.status === "open" ? "Caja abierta" : "Caja cerrada"}
+                    {cashStatus?.status === "open"
+                      ? "Caja abierta"
+                      : "Caja cerrada"}
                   </Text>
                   <Text style={styles.cashStatusSub}>
                     {cashStatus?.status === "open"
-                      ? `Apertura: $${(cashStatus.opening_balance ?? 0).toFixed(2)}`
+                      ? `Apertura: $${(cashStatus.opening_balance ?? 0).toFixed(
+                          2,
+                        )}`
                       : "Abre la caja para habilitar ventas."}
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate("CashRegister")}> 
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CashRegister")}
+              >
                 <Text style={styles.cashStatusLink}>Ver caja</Text>
               </TouchableOpacity>
             </View>
@@ -294,21 +315,30 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                   </TouchableOpacity>
                 </View>
               )}
-              {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
-                <View style={[styles.studentChip, styles.studentChipGuest]}>
-                  <MaterialCommunityIcons
-                    name="account-question"
-                    size={16}
-                    color="#D97706"
-                  />
-                  <Text style={styles.studentChipText}>Alumno no registrado</Text>
-                </View>
-              )}
-              {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
-                <Text style={styles.studentHint}>
-                  La venta se registrará con esa matrícula aunque no exista cuenta.
-                </Text>
-              )}
+              {!lookingUp &&
+                hasLookupResult &&
+                !studentInfo &&
+                !!studentId.trim() && (
+                  <View style={[styles.studentChip, styles.studentChipGuest]}>
+                    <MaterialCommunityIcons
+                      name="account-question"
+                      size={16}
+                      color="#D97706"
+                    />
+                    <Text style={styles.studentChipText}>
+                      Alumno no registrado
+                    </Text>
+                  </View>
+                )}
+              {!lookingUp &&
+                hasLookupResult &&
+                !studentInfo &&
+                !!studentId.trim() && (
+                  <Text style={styles.studentHint}>
+                    La venta se registrará con esa matrícula aunque no exista
+                    cuenta.
+                  </Text>
+                )}
             </View>
 
             {/* Cart summary */}
@@ -349,7 +379,11 @@ export default function RegisterSaleScreen({ navigation }: Props) {
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <MaterialCommunityIcons name="storefront-outline" size={52} color="#d1d5db" />
+            <MaterialCommunityIcons
+              name="storefront-outline"
+              size={52}
+              color="#d1d5db"
+            />
             <Text style={styles.empty}>Sin productos disponibles</Text>
           </View>
         }
@@ -395,9 +429,26 @@ const PURPLE = "#5C35D9";
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F8F7FF" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
-  blockedTitle: { fontSize: 20, fontWeight: "700", color: "#444", marginTop: 16, marginBottom: 8 },
-  blockedSub: { fontSize: 14, color: "#9ca3af", textAlign: "center", maxWidth: 260, lineHeight: 20 },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  blockedTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#444",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  blockedSub: {
+    fontSize: 14,
+    color: "#9ca3af",
+    textAlign: "center",
+    maxWidth: 260,
+    lineHeight: 20,
+  },
   openCashBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -433,7 +484,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#fed7aa",
   },
-  cashStatusLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  cashStatusLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
   cashStatusTitle: { fontSize: 14, fontWeight: "700", color: "#1f2937" },
   cashStatusSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
   cashStatusLink: { color: PURPLE, fontSize: 12, fontWeight: "700" },

@@ -52,10 +52,13 @@ export default function PrintBalanceScreen() {
 
   const barColor = pct > 0.5 ? "#22C55E" : pct > 0.2 ? "#F59E0B" : "#EF4444";
   const urgencyLabel =
-    pct > 0.5 ? "Buen saldo"
-    : pct > 0.2 ? "Pocas páginas"
-    : "¡Casi sin impresiones!";
-  const urgencyColor = pct > 0.5 ? "#16A34A" : pct > 0.2 ? "#D97706" : "#DC2626";
+    pct > 0.5
+      ? "Buen saldo"
+      : pct > 0.2
+      ? "Pocas páginas"
+      : "¡Casi sin impresiones!";
+  const urgencyColor =
+    pct > 0.5 ? "#16A34A" : pct > 0.2 ? "#D97706" : "#DC2626";
   const pctText = `${Math.round(pct * 100)}% restante`;
 
   return (
@@ -77,11 +80,15 @@ export default function PrintBalanceScreen() {
 
         {/* Progress bar */}
         <View style={styles.barLabelRow}>
-          <Text style={[styles.urgencyLabel, { color: urgencyColor }]}>{urgencyLabel}</Text>
+          <Text style={[styles.urgencyLabel, { color: urgencyColor }]}>
+            {urgencyLabel}
+          </Text>
           <Text style={styles.pctLabel}>{pctText}</Text>
         </View>
         <View style={styles.barTrack}>
-          <View style={[styles.barFill, { flex: pct, backgroundColor: barColor }]} />
+          <View
+            style={[styles.barFill, { flex: pct, backgroundColor: barColor }]}
+          />
           <View style={{ flex: Math.max(0, 1 - pct) }} />
         </View>
 

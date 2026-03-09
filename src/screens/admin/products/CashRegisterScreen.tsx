@@ -92,7 +92,10 @@ export default function CashRegisterScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: extractApiErrorMessage(err, "No se pudo completar la operación."),
+        text2: extractApiErrorMessage(
+          err,
+          "No se pudo completar la operación.",
+        ),
       });
     } finally {
       setSubmitting(false);
@@ -127,14 +130,24 @@ export default function CashRegisterScreen() {
       }
     >
       {/* Status Card */}
-      <View style={[styles.statusCard, isOpen ? styles.statusOpen : styles.statusClosed]}>
+      <View
+        style={[
+          styles.statusCard,
+          isOpen ? styles.statusOpen : styles.statusClosed,
+        ]}
+      >
         <View style={styles.statusHeader}>
           <MaterialCommunityIcons
             name={isOpen ? "cash-register" : "cash-remove"}
             size={28}
             color={isOpen ? "#2E7D32" : "#C62828"}
           />
-          <Text style={[styles.statusTitle, { color: isOpen ? "#2E7D32" : "#C62828" }]}>
+          <Text
+            style={[
+              styles.statusTitle,
+              { color: isOpen ? "#2E7D32" : "#C62828" },
+            ]}
+          >
             {isOpen ? "Caja Abierta" : "Caja Cerrada"}
           </Text>
         </View>
@@ -143,24 +156,31 @@ export default function CashRegisterScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Apertura</Text>
-              <Text style={styles.statValue}>{fmt(status.opening_balance)}</Text>
+              <Text style={styles.statValue}>
+                {fmt(status.opening_balance)}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Ventas</Text>
-              <Text style={[styles.statValue, { color: PURPLE }]}>{fmt(salesTotal)}</Text>
+              <Text style={[styles.statValue, { color: PURPLE }]}>
+                {fmt(salesTotal)}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Estimado</Text>
-              <Text style={[styles.statValue, { color: "#2E7D32" }]}>{fmt(estimated)}</Text>
+              <Text style={[styles.statValue, { color: "#2E7D32" }]}>
+                {fmt(estimated)}
+              </Text>
             </View>
           </View>
         )}
 
         {status?.opened_at && (
           <Text style={styles.statusMeta}>
-            {isOpen ? "Abierta" : "Última apertura"}: {fmtDate(status.opened_at)}
+            {isOpen ? "Abierta" : "Última apertura"}:{" "}
+            {fmtDate(status.opened_at)}
           </Text>
         )}
       </View>
@@ -211,11 +231,15 @@ export default function CashRegisterScreen() {
             return (
               <View key={reg.id} style={styles.historyCard}>
                 <View style={styles.historyHeader}>
-                  <Text style={styles.historyDate}>{fmtDate(reg.opened_at)}</Text>
+                  <Text style={styles.historyDate}>
+                    {fmtDate(reg.opened_at)}
+                  </Text>
                   <View
                     style={[
                       styles.statusBadge,
-                      reg.status === "open" ? styles.badgeOpen : styles.badgeClosed,
+                      reg.status === "open"
+                        ? styles.badgeOpen
+                        : styles.badgeClosed,
                     ]}
                   >
                     <Text style={styles.badgeText}>
@@ -225,7 +249,9 @@ export default function CashRegisterScreen() {
                 </View>
                 <View style={styles.historyRow}>
                   <Text style={styles.historyLabel}>Apertura</Text>
-                  <Text style={styles.historyValue}>{fmt(reg.opening_balance)}</Text>
+                  <Text style={styles.historyValue}>
+                    {fmt(reg.opening_balance)}
+                  </Text>
                 </View>
                 <View style={styles.historyRow}>
                   <Text style={styles.historyLabel}>Ventas</Text>
@@ -237,7 +263,9 @@ export default function CashRegisterScreen() {
                   <>
                     <View style={styles.historyRow}>
                       <Text style={styles.historyLabel}>Cierre real</Text>
-                      <Text style={styles.historyValue}>{fmt(reg.closing_balance)}</Text>
+                      <Text style={styles.historyValue}>
+                        {fmt(reg.closing_balance)}
+                      </Text>
                     </View>
                     {diff !== null && (
                       <View style={styles.historyRow}>
@@ -248,7 +276,8 @@ export default function CashRegisterScreen() {
                             { color: diff >= 0 ? "#2E7D32" : "#C62828" },
                           ]}
                         >
-                          {diff >= 0 ? "+" : ""}{fmt(diff)}
+                          {diff >= 0 ? "+" : ""}
+                          {fmt(diff)}
                         </Text>
                       </View>
                     )}
@@ -270,7 +299,12 @@ const styles = StyleSheet.create({
   statusCard: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2 },
   statusOpen: { backgroundColor: "#E8F5E9" },
   statusClosed: { backgroundColor: "#FFEBEE" },
-  statusHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
+  statusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
   statusTitle: { fontSize: 20, fontWeight: "800" },
   statsRow: {
     flexDirection: "row",
@@ -292,7 +326,12 @@ const styles = StyleSheet.create({
     elevation: 1,
     marginBottom: 20,
   },
-  formLabel: { fontSize: 14, fontWeight: "600", color: "#333", marginBottom: 8 },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1.5,
     borderColor: "#ddd",
@@ -310,7 +349,12 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.6 },
   actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a2e", marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1a1a2e",
+    marginBottom: 12,
+  },
   historyCard: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -337,4 +381,3 @@ const styles = StyleSheet.create({
   historyLabel: { fontSize: 13, color: "#777" },
   historyValue: { fontSize: 13, fontWeight: "700", color: "#1a1a2e" },
 });
-

@@ -72,7 +72,11 @@ export default function LoanHistoryScreen() {
       }
       ListEmptyComponent={
         <View style={styles.emptyWrap}>
-          <MaterialCommunityIcons name="gamepad-variant-outline" size={52} color="#d1d5db" />
+          <MaterialCommunityIcons
+            name="gamepad-variant-outline"
+            size={52}
+            color="#d1d5db"
+          />
           <Text style={styles.empty}>Sin préstamos registrados</Text>
         </View>
       }
@@ -95,13 +99,21 @@ export default function LoanHistoryScreen() {
             </Text>
             {!item.pieces_complete && (
               <View style={styles.piecesRow}>
-                <MaterialCommunityIcons name="puzzle-remove-outline" size={12} color="#F59E0B" />
+                <MaterialCommunityIcons
+                  name="puzzle-remove-outline"
+                  size={12}
+                  color="#F59E0B"
+                />
                 <Text style={styles.piecesWarn}>Piezas incompletas</Text>
               </View>
             )}
             {item.admin_name ? (
               <View style={styles.adminRow}>
-                <MaterialCommunityIcons name="account-outline" size={12} color="#9ca3af" />
+                <MaterialCommunityIcons
+                  name="account-outline"
+                  size={12}
+                  color="#9ca3af"
+                />
                 <Text style={styles.adminName}>{item.admin_name}</Text>
               </View>
             ) : null}
@@ -143,9 +155,19 @@ const styles = StyleSheet.create({
   gameName: { fontSize: 15, fontWeight: "700", color: "#1a1a2e" },
   studentLine: { fontSize: 12, color: "#4b5563", marginTop: 2 },
   meta: { fontSize: 12, color: "#888", marginTop: 3 },
-  adminRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  adminRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
   adminName: { fontSize: 12, color: "#9ca3af" },
-  piecesRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  piecesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 3,
+  },
   piecesWarn: { fontSize: 12, color: "#F59E0B", fontWeight: "600" },
   badge: {
     paddingHorizontal: 10,

@@ -1,0 +1,47 @@
+{
+  "name": "CubiculoApp",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "backend": "cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+  },
+  "dependencies": {
+    "@react-native/metro-config": "0.74.83",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
+    "axios": "^1.7.2",
+    "date-fns": "^3.6.0",
+    "react": "18.3.1",
+    "react-hook-form": "^7.51.5",
+    "react-native": "0.74.1",
+    "react-native-document-picker": "^9.3.1",
+    "react-native-mmkv": "^2.12.2",
+    "react-native-paper": "^5.12.3",
+    "react-native-safe-area-context": "^4.10.1",
+    "react-native-screens": "^3.31.1",
+    "react-native-toast-message": "^2.3.3",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-vision-camera": "^4.7.3",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native/eslint-config": "^0.74.83",
+    "@react-native/typescript-config": "^0.74.83",
+    "@types/react": "^18.2.6",
+    "@types/react-native": "^0.73.0",
+    "@types/react-native-vector-icons": "^6.4.18",
+    "eslint": "^8.19.0",
+    "prettier": "2.8.8",
+    "typescript": "5.0.4"
+  }
+}

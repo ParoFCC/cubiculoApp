@@ -14,6 +14,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { gamesService } from "../../../services/gamesService";
 import { usersService } from "../../../services/usersService";
+import { attendanceService } from "../../../services/attendanceService";
 import { Game } from "../../../types/games.types";
 import { User } from "../../../types/auth.types";
 import QRScannerModal from "../../../components/QRScannerModal";
@@ -41,11 +42,14 @@ export default function RegisterLoanScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingGames, setLoadingGames] = useState(true);
   const [piecesComplete, setPiecesComplete] = useState(true);
+  const [adminIsOut, setAdminIsOut] = useState(false);
 
   useEffect(() => {
-    gamesService
-      .getCatalog()
-      .then((data) => {
+    Promise.all([
+      gamesService.getCatalog(),
+      attendanceService.getStatus().catch(() => null),
+    ])
+      .then(([data, statusData]) => {
         const available = data.filter((g) => g.quantity_avail > 0);
         setGames(available);
         // Handle deep link: game_id param (UUID string from cubiculoapp://loan?game_id=<uuid>)
@@ -53,6 +57,7 @@ export default function RegisterLoanScreen() {
           const found = data.find((g) => g.id === routeParams.game_id);
           if (found) setSelectedGame(found);
         }
+        if (statusData) setAdminIsOut(statusData.status === "out");
       })
       .finally(() => setLoadingGames(false));
   }, []);
@@ -269,10 +274,24 @@ export default function RegisterLoanScreen() {
         </Text>
       )}
 
+      {adminIsOut && (
+        <View style={styles.outWarning}>
+          <MaterialCommunityIcons
+            name="account-clock-outline"
+            size={18}
+            color="#92400e"
+          />
+          <Text style={styles.outWarningText}>
+            No estás registrado como presente. Registra tu entrada antes de
+            operar.
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity
-        style={[styles.btn, loading && styles.btnDisabled]}
+        style={[styles.btn, (loading || adminIsOut) && styles.btnDisabled]}
         onPress={handleRegister}
-        disabled={loading}
+        disabled={loading || adminIsOut}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -393,6 +412,24 @@ const styles = StyleSheet.create({
     color: "#F59E0B",
     marginTop: 6,
     marginLeft: 2,
+  },
+  outWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#fff7ed",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  outWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#92400e",
+    fontWeight: "600",
+    lineHeight: 18,
   },
   btn: {
     backgroundColor: PURPLE,

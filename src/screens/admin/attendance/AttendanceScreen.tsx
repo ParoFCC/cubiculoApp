@@ -214,20 +214,6 @@ export default function AttendanceScreen() {
             <Text style={styles.rowType}>
               {item.type === "entry" ? "Entrada" : "Salida"}
             </Text>
-            <View style={styles.methodRow}>
-              <MaterialCommunityIcons
-                name={
-                  item.method === "qr"
-                    ? "qrcode-scan"
-                    : item.method === "nfc"
-                    ? "nfc"
-                    : "gesture-tap-button"
-                }
-                size={12}
-                color="#9ca3af"
-              />
-              <Text style={styles.methodText}>{item.method}</Text>
-            </View>
           </View>
           <Text style={styles.rowTime}>
             {format(new Date(item.recorded_at), "HH:mm")}

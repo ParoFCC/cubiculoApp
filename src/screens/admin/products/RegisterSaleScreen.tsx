@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { productsService } from "../../../services/productsService";
 import { usersService } from "../../../services/usersService";
+import { attendanceService } from "../../../services/attendanceService";
 import { Product, CashRegister } from "../../../types/products.types";
 import { User } from "../../../types/auth.types";
 import { extractApiErrorMessage } from "../../../utils/apiError";
@@ -44,6 +45,7 @@ export default function RegisterSaleScreen({ navigation }: Props) {
   const [presetApplied, setPresetApplied] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
+  const [adminIsOut, setAdminIsOut] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchProducts = useCallback(async (quiet = false) => {
@@ -65,11 +67,13 @@ export default function RegisterSaleScreen({ navigation }: Props) {
   }, []);
 
   const fetchCash = useCallback(async () => {
-    try {
-      const cash = await productsService.getCashRegisterStatus();
-      setCashStatus(cash);
-    } catch {
-      setCashStatus(null);
+    const [cashResult, attendanceResult] = await Promise.allSettled([
+      productsService.getCashRegisterStatus(),
+      attendanceService.getStatus(),
+    ]);
+    setCashStatus(cashResult.status === "fulfilled" ? cashResult.value : null);
+    if (attendanceResult.status === "fulfilled") {
+      setAdminIsOut(attendanceResult.value.status === "out");
     }
   }, []);
 
@@ -455,10 +459,26 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                     </Text>
                   </View>
                 )}
+                {adminIsOut && (
+                  <View style={styles.outWarning}>
+                    <MaterialCommunityIcons
+                      name="account-clock-outline"
+                      size={18}
+                      color="#92400e"
+                    />
+                    <Text style={styles.outWarningText}>
+                      No estás registrado como presente. Registra tu entrada
+                      antes de operar.
+                    </Text>
+                  </View>
+                )}
                 <TouchableOpacity
-                  style={[styles.confirmBtn, registering && styles.disabled]}
+                  style={[
+                    styles.confirmBtn,
+                    (registering || adminIsOut) && styles.disabled,
+                  ]}
                   onPress={() => setConfirmVisible(true)}
-                  disabled={registering}
+                  disabled={registering || adminIsOut}
                 >
                   {registering ? (
                     <ActivityIndicator color="#fff" />
@@ -601,12 +621,15 @@ export default function RegisterSaleScreen({ navigation }: Props) {
               <Text style={styles.modalStudent}>🎓 {studentInfo.name}</Text>
             )}
             <TouchableOpacity
-              style={[styles.modalConfirmBtn, registering && styles.disabled]}
+              style={[
+                styles.modalConfirmBtn,
+                (registering || adminIsOut) && styles.disabled,
+              ]}
               onPress={() => {
                 setConfirmVisible(false);
                 handleRegister();
               }}
-              disabled={registering}
+              disabled={registering || adminIsOut}
             >
               {registering ? (
                 <ActivityIndicator color="#fff" />
@@ -809,6 +832,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   grandTotalText: { fontSize: 13, color: "#0369a1", fontWeight: "800" },
+  outWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#fff7ed",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  outWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#92400e",
+    fontWeight: "600",
+    lineHeight: 18,
+  },
   // Modal payment badge
   modalPaymentBadge: {
     flexDirection: "row",

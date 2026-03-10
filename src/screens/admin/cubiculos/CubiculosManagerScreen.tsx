@@ -12,7 +12,6 @@ import {
   TextInput,
   ScrollView,
   RefreshControl,
-  Platform,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import {
@@ -244,14 +243,18 @@ function CubiculoCard({
   onToggle: (c: Cubiculo, field: keyof CubiculoPayload, value: boolean) => void;
 }) {
   const [admins, setAdmins] = useState<User[]>([]);
+  const [allAdmins, setAllAdmins] = useState<User[]>([]);
   const [expanded, setExpanded] = useState(false);
-  const [adminSearch, setAdminSearch] = useState("");
-  const [assigning, setAssigning] = useState(false);
+  const [assigning, setAssigning] = useState<string | null>(null); // userId being assigned
 
   const loadAdmins = useCallback(async () => {
     try {
-      const data = await cubiculosService.getAdmins(cubiculo.id);
-      setAdmins(data);
+      const [assigned, { items }] = await Promise.all([
+        cubiculosService.getAdmins(cubiculo.id),
+        usersService.getAll("admin" as any),
+      ]);
+      setAdmins(assigned);
+      setAllAdmins(items);
     } catch {
       // silently fail
     }
@@ -262,27 +265,15 @@ function CubiculoCard({
     setExpanded((v) => !v);
   };
 
-  const handleAssign = async () => {
-    const sid = adminSearch.trim();
-    if (!sid) return;
-    setAssigning(true);
+  const handleAssign = async (user: User) => {
+    setAssigning(user.id);
     try {
-      const found = await usersService.lookupByStudentId(sid);
-      await cubiculosService.assignAdmin(cubiculo.id, found.id);
-      setAdminSearch("");
+      await cubiculosService.assignAdmin(cubiculo.id, user.id);
       await loadAdmins();
-    } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 404) {
-        Alert.alert(
-          "No encontrado",
-          "No existe usuario con ese ID de estudiante",
-        );
-      } else {
-        Alert.alert("Error", "No se pudo asignar el admin");
-      }
+    } catch {
+      Alert.alert("Error", "No se pudo asignar el admin");
     } finally {
-      setAssigning(false);
+      setAssigning(null);
     }
   };
 
@@ -414,26 +405,53 @@ function CubiculoCard({
             ))
           )}
 
-          <View style={styles.assignRow}>
-            <TextInput
-              style={styles.assignInput}
-              placeholder="ID de estudiante"
-              value={adminSearch}
-              onChangeText={setAdminSearch}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.assignBtn}
-              onPress={handleAssign}
-              disabled={assigning}
-            >
-              {assigning ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.assignBtnText}>Asignar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* Available admins picker */}
+          {(() => {
+            const assignedIds = new Set(admins.map((a) => a.id));
+            const available = allAdmins.filter((u) => !assignedIds.has(u.id));
+            if (available.length === 0)
+              return (
+                <Text style={styles.adminsEmpty}>
+                  No hay admins disponibles para asignar
+                </Text>
+              );
+            return (
+              <View style={styles.pickerSection}>
+                <Text style={styles.pickerLabel}>Agregar admin</Text>
+                {available.map((u) => (
+                  <TouchableOpacity
+                    key={u.id}
+                    style={styles.pickerRow}
+                    onPress={() => handleAssign(u)}
+                    disabled={assigning !== null}
+                  >
+                    <View style={styles.pickerAvatar}>
+                      <MaterialCommunityIcons
+                        name="shield-account"
+                        size={16}
+                        color={PURPLE}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.pickerName}>{u.name}</Text>
+                      <Text style={styles.pickerSub}>
+                        {u.student_id ?? u.email}
+                      </Text>
+                    </View>
+                    {assigning === u.id ? (
+                      <ActivityIndicator size="small" color={PURPLE} />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="plus-circle-outline"
+                        size={22}
+                        color={PURPLE}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })()}
         </View>
       )}
     </View>
@@ -534,30 +552,38 @@ const styles = StyleSheet.create({
   },
   adminName: { fontSize: 13, fontWeight: "600", color: "#1a1a2e" },
   adminSub: { fontSize: 11, color: "#6b7280" },
-  assignRow: {
+  pickerSection: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 8,
+  },
+  pickerLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginBottom: 6,
+  },
+  pickerRow: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 8,
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+  },
+  pickerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: PURPLE_LIGHT,
+    justifyContent: "center",
     alignItems: "center",
   },
-  assignInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    fontSize: 13,
-    color: "#1a1a2e",
-    backgroundColor: "#f9fafb",
-  },
-  assignBtn: {
-    backgroundColor: PURPLE,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  assignBtnText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  pickerName: { fontSize: 13, fontWeight: "600", color: "#1a1a2e" },
+  pickerSub: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
 
   // Modal
   modalOverlay: {

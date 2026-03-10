@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -34,6 +34,21 @@ export default function UsersAdminScreen() {
   const [assigning, setAssigning] = useState(false);
   const currentUser = useAuthStore((s) => s.user);
   const isSuperAdmin = currentUser?.is_super_admin === true;
+
+  // Map cubiculo_id → admin user (excludes the user being reassigned so the slot looks free)
+  const cubiculoAdminMap = useMemo(() => {
+    const map: Record<string, User> = {};
+    users.forEach((u) => {
+      if (
+        u.role === "admin" &&
+        u.managed_cubiculo_id &&
+        u.id !== assignTarget?.id
+      ) {
+        map[u.managed_cubiculo_id] = u;
+      }
+    });
+    return map;
+  }, [users, assignTarget]);
 
   const fetchUsers = useCallback(
     async (quiet = false) => {
@@ -461,6 +476,30 @@ export default function UsersAdminScreen() {
                           {c.location}
                         </Text>
                       ) : null}
+                      {cubiculoAdminMap[c.id] ? (
+                        <View style={styles.assignedBadge}>
+                          <MaterialCommunityIcons
+                            name="shield-account"
+                            size={11}
+                            color="#9333ea"
+                          />
+                          <Text
+                            style={styles.assignedBadgeText}
+                            numberOfLines={1}
+                          >
+                            {cubiculoAdminMap[c.id].name}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.freeBadge}>
+                          <MaterialCommunityIcons
+                            name="check-circle-outline"
+                            size={11}
+                            color="#16a34a"
+                          />
+                          <Text style={styles.freeBadgeText}>Disponible</Text>
+                        </View>
+                      )}
                     </View>
                     {assignTarget?.managed_cubiculo_id === c.id && (
                       <MaterialCommunityIcons
@@ -611,6 +650,30 @@ const styles = StyleSheet.create({
   },
   cubiculoOptionTextActive: { color: PURPLE },
   cubiculoOptionSub: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
+  assignedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+    backgroundColor: "#f3e8ff",
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  assignedBadgeText: { fontSize: 11, color: "#9333ea", fontWeight: "600" },
+  freeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+    backgroundColor: "#dcfce7",
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  freeBadgeText: { fontSize: 11, color: "#16a34a", fontWeight: "600" },
   closeModalBtn: {
     marginTop: 14,
     paddingVertical: 12,

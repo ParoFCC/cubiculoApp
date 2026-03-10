@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -39,22 +39,34 @@ export default function InventoryProductScreen({ navigation }: Props) {
     image_url: "",
   });
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchProducts = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await productsService.getCatalog();
-      setProducts(data);
+      if (!controller.signal.aborted) {
+        setProducts(data);
+      }
     } catch {
       // keep existing list on error
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       fetchProducts();
+      return () => {
+        abortRef.current?.abort();
+      };
     }, [fetchProducts]),
   );
 

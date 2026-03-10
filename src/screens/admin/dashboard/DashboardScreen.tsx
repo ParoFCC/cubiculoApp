@@ -1,21 +1,18 @@
 import * as React from "react";
 import {
-  ActivityIndicator,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { gamesService } from "../../../services/gamesService";
-import { printingService } from "../../../services/printingService";
-import { productsService } from "../../../services/productsService";
 import {
   searchService,
   SearchGameResult,
@@ -24,23 +21,16 @@ import {
 } from "../../../services/searchService";
 import { useAuthStore } from "../../../store/useAuthStore";
 import { useCubiculoStore } from "../../../store/useCubiculoStore";
-// SUPER_ADMIN_ID replaced by user.is_super_admin
-import { GameLoan } from "../../../types/games.types";
-import { CashRegister, Product, Sale } from "../../../types/products.types";
-import { PrintHistoryItem } from "../../../types/printing.types";
+import { cubiculosService } from "../../../services/cubiculosService";
+import {
+  useDashboardData,
+  CriticalItem,
+} from "../../../hooks/useDashboardData";
+import MetricsGrid from "../../../components/dashboard/MetricsGrid";
+import QuickActionsGrid from "../../../components/dashboard/QuickActionsGrid";
 
 const PURPLE = "#5C35D9";
 const PURPLE_LIGHT = "#EEE9FF";
-const { width: SCREEN_W } = Dimensions.get("window");
-const CARD_W = (SCREEN_W - 32 - 10) / 2;
-
-interface QuickCard {
-  screen: string;
-  title: string;
-  icon: string;
-  bg: string;
-  subtitle: string;
-}
 
 interface NavCard {
   screen: string;
@@ -49,16 +39,6 @@ interface NavCard {
   icon: string;
   iconColor: string;
   iconBg: string;
-}
-
-interface MetricCard {
-  key: string;
-  title: string;
-  value: string;
-  helper: string;
-  accent: string;
-  soft: string;
-  icon: string;
 }
 
 type SearchResult =
@@ -86,15 +66,7 @@ type SearchResult =
 
 type ServiceFilter = "all" | "games" | "sales" | "printing" | "admin";
 
-interface CriticalItem {
-  key: string;
-  title: string;
-  description: string;
-  accent: string;
-  soft: string;
-  icon: string;
-  screen: string;
-}
+// ── Shared primitives ─────────────────────────────────────────────────────────
 
 function NavRow({
   card,
@@ -158,41 +130,22 @@ function StatusChip({
   label,
   color,
   bg,
+  onLongPress,
 }: {
   label: string;
   color: string;
   bg: string;
+  onLongPress?: () => void;
 }) {
   return (
-    <View style={[styles.statusChip, { backgroundColor: bg }]}>
+    <TouchableOpacity
+      onLongPress={onLongPress}
+      activeOpacity={onLongPress ? 0.7 : 1}
+      style={[styles.statusChip, { backgroundColor: bg }]}
+    >
       <View style={[styles.statusDot, { backgroundColor: color }]} />
       <Text style={[styles.statusText, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-function MetricBox({ card }: { card: MetricCard }) {
-  return (
-    <View
-      style={[
-        styles.metricCard,
-        { backgroundColor: card.soft, borderLeftColor: card.accent },
-      ]}
-    >
-      <View style={[styles.metricIcon, { backgroundColor: card.accent }]}>
-        <MaterialCommunityIcons
-          name={card.icon as any}
-          size={16}
-          color="#fff"
-        />
-      </View>
-      <View style={styles.metricInfo}>
-        <Text style={styles.metricTitle}>{card.title}</Text>
-        <Text style={[styles.metricValue, { color: card.accent }]}>
-          {card.value}
-        </Text>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -248,24 +201,55 @@ function CriticalCard({
   );
 }
 
+// ── Screen ────────────────────────────────────────────────────────────────────
+
 export default function DashboardScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const cubiculo = useCubiculoStore((s) => s.selectedCubiculo);
+  const clearCubiculo = useCubiculoStore((s) => s.clearCubiculo);
+  const setCubiculo = useCubiculoStore((s) => s.setCubiculo);
   const isSuperAdmin = user?.is_super_admin === true;
 
   const gamesOn = cubiculo?.games_enabled !== false;
   const printOn = cubiculo?.printing_enabled !== false;
   const productsOn = cubiculo?.products_enabled !== false;
 
-  const [loading, setLoading] = React.useState(true);
-  const [products, setProducts] = React.useState<Product[]>([]);
-  const [loanHistory, setLoanHistory] = React.useState<GameLoan[]>([]);
-  const [sales, setSales] = React.useState<Sale[]>([]);
-  const [printHistory, setPrintHistory] = React.useState<PrintHistoryItem[]>(
-    [],
-  );
-  const [cashStatus, setCashStatus] = React.useState<CashRegister | null>(null);
+  const { loading, criticalItems, metricCards, quickCards, cashStatus } =
+    useDashboardData({ gamesOn, printOn, productsOn, isSuperAdmin });
+
+  const toggleService = (
+    field: "games_enabled" | "printing_enabled" | "products_enabled",
+    label: string,
+    current: boolean,
+  ) => {
+    if (!cubiculo) return;
+    Alert.alert(
+      current ? `Desactivar ${label}` : `Activar ${label}`,
+      current
+        ? `¿Desactivar el servicio de ${label}? Los accesos rápidos desaparecerán.`
+        : `¿Activar el servicio de ${label}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: current ? "Desactivar" : "Activar",
+          style: current ? "destructive" : "default",
+          onPress: async () => {
+            try {
+              const updated = await cubiculosService.update(cubiculo.id, {
+                [field]: !current,
+              });
+              setCubiculo(updated);
+            } catch {
+              Alert.alert("Error", "No se pudo actualizar el servicio.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const [query, setQuery] = React.useState("");
   const [serviceFilter, setServiceFilter] =
     React.useState<ServiceFilter>("all");
@@ -275,202 +259,54 @@ export default function DashboardScreen() {
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
   const firstName = user?.name?.split(" ")[0] ?? "Admin";
 
-  const loadDashboard = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const [
-        loanResp,
-        salesResp,
-        cashResp,
-        printResp,
-        _gamesResp,
-        productsResp,
-      ] = await Promise.all([
-        gamesOn
-          ? gamesService.getLoanHistory().catch(() => [])
-          : Promise.resolve([]),
-        productsOn
-          ? productsService.getSales().catch(() => [])
-          : Promise.resolve([]),
-        productsOn
-          ? productsService.getCashRegisterStatus().catch(() => null)
-          : Promise.resolve(null),
-        printOn
-          ? printingService.getAllHistory().catch(() => [])
-          : Promise.resolve([]),
-        gamesOn
-          ? gamesService.getCatalog().catch(() => [])
-          : Promise.resolve([]),
-        productsOn
-          ? productsService.getCatalog().catch(() => [])
-          : Promise.resolve([]),
-      ]);
+  // ── Search debounce ──────────────────────────────────────────────────────────
+  const normalizedQuery = query.trim().toLowerCase();
 
-      setLoanHistory(loanResp);
-      setSales(salesResp);
-      setCashStatus(cashResp);
-      setPrintHistory(printResp);
-      setProducts(productsResp.filter((product) => product.is_active));
-    } finally {
-      setLoading(false);
+  React.useEffect(() => {
+    if (normalizedQuery.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
     }
-  }, [gamesOn, printOn, productsOn]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadDashboard();
-    }, [loadDashboard]),
-  );
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await searchService.searchGlobal(normalizedQuery, 4);
+        setSearchResults([
+          ...response.users.map((s) => ({
+            key: `student-${s.id}`,
+            kind: "student" as const,
+            title: s.name,
+            subtitle: s.student_id ?? s.email,
+            payload: s,
+          })),
+          ...response.games.map((g) => ({
+            key: `game-${g.id}`,
+            kind: "game" as const,
+            title: g.name,
+            subtitle: `${g.quantity_avail}/${g.quantity_total} disponibles`,
+            payload: g,
+          })),
+          ...response.products.map((p) => ({
+            key: `product-${p.id}`,
+            kind: "product" as const,
+            title: p.name,
+            subtitle: `Stock ${p.stock} · $${p.price.toFixed(2)}`,
+            payload: p,
+          })),
+        ]);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 250);
 
-  const isSameDay = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    return (
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate()
-    );
-  };
+    return () => clearTimeout(timer);
+  }, [normalizedQuery]);
 
-  const activeLoans = loanHistory.filter(
-    (loan) => loan.status === "active",
-  ).length;
-  const overdueLoans = loanHistory.filter((loan) => {
-    if (loan.status === "overdue") return true;
-    if (loan.status !== "active" || !loan.due_at) return false;
-    return new Date(loan.due_at).getTime() < Date.now();
-  }).length;
-  const todaySales = sales.filter((sale) => isSameDay(sale.sold_at));
-  const todaySalesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
-  const todayPrints = printHistory.filter((item) => isSameDay(item.printed_at));
-  const todayPrintPages = todayPrints.reduce(
-    (sum, item) => sum + item.pages,
-    0,
-  );
-  const lowStockProducts = products.filter(
-    (product) => product.stock > 0 && product.stock <= 3,
-  ).length;
-
-  const criticalItems: CriticalItem[] = [
-    overdueLoans > 0 && {
-      key: "overdue-loans",
-      title: `${overdueLoans} préstamos vencidos`,
-      description: "Revisa devoluciones pendientes y seguimiento.",
-      accent: "#b91c1c",
-      soft: "#fee2e2",
-      icon: "alert-circle-outline",
-      screen: "LoanHistory",
-    },
-    lowStockProducts > 0 && {
-      key: "low-stock",
-      title: `${lowStockProducts} productos con stock bajo`,
-      description: "Repón inventario antes de quedarte sin venta.",
-      accent: "#b45309",
-      soft: "#ffedd5",
-      icon: "package-variant-closed-alert",
-      screen: "InventoryProduct",
-    },
-    cashStatus?.status === "open" && {
-      key: "cash-open",
-      title: "Caja pendiente de cierre",
-      description: "Hay una caja abierta que sigue operando.",
-      accent: "#15803d",
-      soft: "#dcfce7",
-      icon: "cash-clock",
-      screen: "CashRegister",
-    },
-  ].filter(Boolean) as CriticalItem[];
-
-  const metricCards: MetricCard[] = [
-    {
-      key: "active-loans",
-      title: "Préstamos activos",
-      value: `${activeLoans}`,
-      helper:
-        activeLoans === 1
-          ? "1 préstamo pendiente"
-          : `${activeLoans} pendientes`,
-      accent: PURPLE,
-      soft: "#ede9fe",
-      icon: "hand-coin-outline",
-    },
-    {
-      key: "cash-status",
-      title: "Caja",
-      value: cashStatus?.status === "open" ? "Abierta" : "Cerrada",
-      helper:
-        cashStatus?.status === "open"
-          ? `Apertura $${(cashStatus.opening_balance ?? 0).toFixed(2)}`
-          : "Sin caja operando",
-      accent: cashStatus?.status === "open" ? "#15803d" : "#b45309",
-      soft: cashStatus?.status === "open" ? "#dcfce7" : "#ffedd5",
-      icon: cashStatus?.status === "open" ? "cash-check" : "cash-remove",
-    },
-    {
-      key: "today-sales",
-      title: "Ventas de hoy",
-      value: `$${todaySalesTotal.toFixed(2)}`,
-      helper:
-        todaySales.length === 1 ? "1 venta" : `${todaySales.length} ventas`,
-      accent: "#059669",
-      soft: "#d1fae5",
-      icon: "cart-check",
-    },
-    {
-      key: "today-prints",
-      title: "Impresiones de hoy",
-      value: `${todayPrintPages}`,
-      helper:
-        todayPrints.length === 1
-          ? "1 registro"
-          : `${todayPrints.length} registros`,
-      accent: "#0284c7",
-      soft: "#e0f2fe",
-      icon: "printer-outline",
-    },
-  ];
-
-  const quickCards: QuickCard[] = [
-    gamesOn && {
-      screen: "RegisterLoan",
-      title: "Préstamo",
-      icon: "hand-pointing-right",
-      bg: PURPLE,
-      subtitle: "Registrar salida",
-    },
-    gamesOn &&
-      activeLoans > 0 && {
-        screen: "RegisterReturn",
-        title: "Devolución",
-        icon: "hand-okay",
-        bg: "#D97706",
-        subtitle: `${activeLoans} por recibir`,
-      },
-    printOn && {
-      screen: "RegisterPrint",
-      title: "Impresión",
-      icon: "printer",
-      bg: "#0891B2",
-      subtitle: "Cargar páginas",
-    },
-    productsOn &&
-      (cashStatus?.status === "open"
-        ? {
-            screen: "RegisterSale",
-            title: "Venta",
-            icon: "cart",
-            bg: "#059669",
-            subtitle: "Cobro rápido",
-          }
-        : {
-            screen: "CashRegister",
-            title: "Abrir caja",
-            icon: "cash-register",
-            bg: "#BE123C",
-            subtitle: "Ventas bloqueadas",
-          }),
-  ].filter(Boolean) as QuickCard[];
-
+  // ── Nav card lists ────────────────────────────────────────────────────────────
   const inventoryCards: NavCard[] = [
     gamesOn && {
       screen: "Inventory",
@@ -557,58 +393,12 @@ export default function DashboardScreen() {
     },
   ];
 
-  const normalizedQuery = query.trim().toLowerCase();
-
-  React.useEffect(() => {
-    if (normalizedQuery.length < 2) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const response = await searchService.searchGlobal(normalizedQuery, 4);
-        setSearchResults([
-          ...response.users.map((student) => ({
-            key: `student-${student.id}`,
-            kind: "student" as const,
-            title: student.name,
-            subtitle: student.student_id ?? student.email,
-            payload: student,
-          })),
-          ...response.games.map((game) => ({
-            key: `game-${game.id}`,
-            kind: "game" as const,
-            title: game.name,
-            subtitle: `${game.quantity_avail}/${game.quantity_total} disponibles`,
-            payload: game,
-          })),
-          ...response.products.map((product) => ({
-            key: `product-${product.id}`,
-            kind: "product" as const,
-            title: product.name,
-            subtitle: `Stock ${product.stock} · $${product.price.toFixed(2)}`,
-            payload: product,
-          })),
-        ]);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [normalizedQuery]);
-
+  // ── Filtered card lists ───────────────────────────────────────────────────────
   const filteredInventoryCards =
     serviceFilter === "all"
       ? inventoryCards
       : inventoryCards.filter((card) => {
-          if (serviceFilter === "games")
-            return ["Inventory"].includes(card.screen);
+          if (serviceFilter === "games") return card.screen === "Inventory";
           if (serviceFilter === "sales")
             return ["InventoryProduct", "CashRegister"].includes(card.screen);
           return false;
@@ -652,7 +442,6 @@ export default function DashboardScreen() {
       navigation.navigate("RegisterSale", {
         preselectedProductId: result.payload.id,
       });
-      return;
     }
   };
 
@@ -673,26 +462,65 @@ export default function DashboardScreen() {
               lugar.
             </Text>
           </View>
-          <View style={styles.cubiculoBadge}>
-            <MaterialCommunityIcons
-              name="office-building-outline"
-              size={13}
-              color={PURPLE}
-            />
-            <Text style={styles.cubiculoName} numberOfLines={1}>
-              {cubiculo?.name ?? "Cubículo"}
-            </Text>
+          <View style={styles.heroActions}>
+            {isSuperAdmin && (
+              <TouchableOpacity
+                style={styles.heroActionBtn}
+                onPress={clearCubiculo}
+              >
+                <MaterialCommunityIcons
+                  name="office-building-outline"
+                  size={18}
+                  color="rgba(255,255,255,0.85)"
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.heroActionBtn, styles.heroLogoutBtn]}
+              onPress={logout}
+            >
+              <MaterialCommunityIcons name="logout" size={18} color="#fca5a5" />
+            </TouchableOpacity>
           </View>
+        </View>
+        <View style={styles.cubiculoBadge}>
+          <MaterialCommunityIcons
+            name="office-building-outline"
+            size={13}
+            color={PURPLE}
+          />
+          <Text style={styles.cubiculoName} numberOfLines={1}>
+            {cubiculo?.name ?? "Cubículo"}
+          </Text>
         </View>
         <View style={styles.statusRow}>
           {gamesOn && (
-            <StatusChip label="Juegos activo" color="#5B21B6" bg="#EDE9FE" />
+            <StatusChip
+              label="Juegos activo"
+              color="#5B21B6"
+              bg="#EDE9FE"
+              onLongPress={() => toggleService("games_enabled", "juegos", true)}
+            />
           )}
           {printOn && (
-            <StatusChip label="Impresión activa" color="#0C4A6E" bg="#E0F2FE" />
+            <StatusChip
+              label="Impresión activa"
+              color="#0C4A6E"
+              bg="#E0F2FE"
+              onLongPress={() =>
+                toggleService("printing_enabled", "impresión", true)
+              }
+            />
           )}
           {productsOn && (
-            <StatusChip label="Ventas activas" color="#166534" bg="#DCFCE7" />
+            <StatusChip
+              label="Ventas activas"
+              color="#166534"
+              bg="#DCFCE7"
+              onLongPress={() =>
+                toggleService("products_enabled", "ventas", true)
+              }
+            />
           )}
         </View>
       </View>
@@ -751,63 +579,12 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Quick actions grid */}
-      {filteredQuickCards.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Acciones rápidas</Text>
-          <View style={styles.quickGrid}>
-            {filteredQuickCards.map((card) => (
-              <TouchableOpacity
-                key={card.screen}
-                style={[
-                  styles.quickCard,
-                  { backgroundColor: card.bg, width: CARD_W },
-                ]}
-                onPress={() => navigation.navigate(card.screen)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.quickIconCircle}>
-                  <MaterialCommunityIcons
-                    name={card.icon as any}
-                    size={26}
-                    color="#fff"
-                  />
-                </View>
-                <View style={styles.quickTextBlock}>
-                  <Text style={styles.quickTitle}>{card.title}</Text>
-                  <Text style={styles.quickSubtitle}>{card.subtitle}</Text>
-                </View>
-                <View style={styles.quickFooter}>
-                  <Text style={styles.quickCta}>Abrir</Text>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={16}
-                    color="rgba(255,255,255,0.85)"
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
+      <QuickActionsGrid
+        cards={filteredQuickCards}
+        onNavigate={(screen) => navigation.navigate(screen)}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Resumen en tiempo real</Text>
-        {loading ? (
-          <View style={styles.metricsLoading}>
-            <ActivityIndicator color={PURPLE} />
-            <Text style={styles.metricsLoadingText}>
-              Actualizando métricas...
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.metricsGrid}>
-            {metricCards.map((card) => (
-              <MetricBox key={card.key} card={card} />
-            ))}
-          </View>
-        )}
-      </View>
+      <MetricsGrid loading={loading} cards={metricCards} />
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Búsqueda global</Text>
@@ -971,8 +748,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    marginBottom: 12,
   },
   heroLeft: { flex: 1, marginRight: 12 },
+  heroActions: { flexDirection: "row", gap: 8, alignItems: "center" },
+  heroActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroLogoutBtn: { backgroundColor: "rgba(239,68,68,0.2)" },
   greeting: { color: "#fff", fontSize: 22, fontWeight: "800" },
   date: {
     color: "rgba(255,255,255,0.75)",
@@ -990,13 +778,13 @@ const styles = StyleSheet.create({
   cubiculoBadge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     backgroundColor: "#fff",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 5,
-    maxWidth: 130,
-    flexShrink: 0,
+    marginBottom: 10,
   },
   cubiculoName: {
     fontSize: 12,
@@ -1018,17 +806,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     gap: 6,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { fontSize: 12, fontWeight: "700" },
 
-  // Section
+  // Sections
   section: { gap: 10 },
   sectionLabel: {
     fontSize: 11,
@@ -1037,23 +818,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.9,
     textTransform: "uppercase",
     paddingLeft: 2,
-  },
-  metricsLoading: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    paddingVertical: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  metricsLoadingText: {
-    fontSize: 13,
-    color: "#6b7280",
-  },
-  metricsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
   },
   criticalList: { gap: 10 },
   criticalCard: {
@@ -1071,22 +835,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   criticalTextBlock: { flex: 1 },
-  criticalTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#111827",
-  },
+  criticalTitle: { fontSize: 14, fontWeight: "800", color: "#111827" },
   criticalDesc: {
     fontSize: 12,
     color: "#6b7280",
     marginTop: 3,
     lineHeight: 17,
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   filterChip: {
     backgroundColor: "#fff",
     borderRadius: 999,
@@ -1095,46 +851,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  filterChipActive: {
-    backgroundColor: PURPLE,
-    borderColor: PURPLE,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6b7280",
-  },
-  filterChipTextActive: {
-    color: "#fff",
-  },
-  metricCard: {
-    width: CARD_W,
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderLeftWidth: 3,
-  },
-  metricIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  metricInfo: { flex: 1 },
-  metricTitle: {
-    fontSize: 11,
-    color: "#6b7280",
-    fontWeight: "600",
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: 1,
-  },
+  filterChipActive: { backgroundColor: PURPLE, borderColor: PURPLE },
+  filterChipText: { fontSize: 12, fontWeight: "700", color: "#6b7280" },
+  filterChipTextActive: { color: "#fff" },
+
+  // Search
   searchCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -1158,19 +879,14 @@ const styles = StyleSheet.create({
     color: "#111827",
     paddingVertical: 10,
   },
-  searchResults: {
-    gap: 10,
-  },
+  searchResults: { gap: 10 },
   searchLoadingWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingVertical: 8,
   },
-  searchLoadingText: {
-    fontSize: 13,
-    color: "#6b7280",
-  },
+  searchLoadingText: { fontSize: 13, color: "#6b7280" },
   searchRow: {
     borderWidth: 1,
     borderColor: "#eef2f7",
@@ -1178,11 +894,7 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 10,
   },
-  searchRowMain: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  searchRowMain: { flexDirection: "row", alignItems: "center", gap: 10 },
   searchIconWrap: {
     width: 36,
     height: 36,
@@ -1192,80 +904,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchTextBlock: { flex: 1 },
-  searchTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  searchSub: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  searchActionsWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  searchTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
+  searchSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
+  searchActionsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   searchActionBtn: {
     backgroundColor: "#F5F3FF",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  searchActionText: {
-    color: PURPLE,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  emptySearch: {
-    fontSize: 13,
-    color: "#9ca3af",
-    paddingVertical: 6,
-  },
-
-  // Quick grid
-  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  quickCard: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    minHeight: 156,
-  },
-  quickIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickTextBlock: { gap: 4, flex: 1 },
-  quickTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  quickSubtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 17,
-  },
-  quickFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  quickCta: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.85)",
-  },
+  searchActionText: { color: PURPLE, fontSize: 12, fontWeight: "700" },
+  emptySearch: { fontSize: 13, color: "#9ca3af", paddingVertical: 6 },
 
   // Nav list
   navList: {

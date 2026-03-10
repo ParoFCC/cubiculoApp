@@ -29,6 +29,10 @@ export default function CubiculoSelectScreen() {
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
 
+  const isSuperAdmin = user?.is_super_admin === true;
+  const isUnassignedAdmin =
+    user?.role === "admin" && !isSuperAdmin && !user.managed_cubiculo_id;
+
   useEffect(() => {
     cubiculosService
       .getAll()
@@ -51,6 +55,36 @@ export default function CubiculoSelectScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={PURPLE} />
+      </View>
+    );
+  }
+
+  // Admin without cubículo assigned: show waiting screen
+  if (isUnassignedAdmin) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.waitingWrap}>
+          <View style={styles.waitingIcon}>
+            <MaterialCommunityIcons
+              name="account-clock-outline"
+              size={52}
+              color={PURPLE}
+            />
+          </View>
+          <Text style={styles.waitingTitle}>
+            Cuenta pendiente de asignación
+          </Text>
+          <Text style={styles.waitingBody}>
+            Tu cuenta fue creada correctamente, pero aún no tienes un cubículo
+            asignado.{"\n\n"}
+            Comunícate con el superadministrador para que te asigne a un
+            cubículo y puedas comenzar a operar.
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+          <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />
+          <Text style={styles.logoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -199,6 +233,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#6B7280",
     fontSize: 14,
+    lineHeight: 22,
+  },
+  waitingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 16,
+  },
+  waitingIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#EEE9FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  waitingTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1A1A2E",
+    textAlign: "center",
+  },
+  waitingBody: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
     lineHeight: 22,
   },
   logoutBtn: {

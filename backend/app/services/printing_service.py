@@ -33,11 +33,13 @@ async def get_or_create_balance(
 ) -> PrintBalance:
     normalized_identifier = normalize_student_identifier(student_identifier)
     result = await db.execute(
-        select(PrintBalance).where(
+        select(PrintBalance)
+        .where(
             PrintBalance.student_identifier == normalized_identifier,
             PrintBalance.cubiculo_id == cubiculo_id,
             PrintBalance.period == period,
         )
+        .with_for_update()
     )
     balance = result.scalar_one_or_none()
     if not balance:
@@ -133,11 +135,13 @@ async def get_balance_by_student_identifier(
     return balance, student
 
 
-async def get_all_history(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[PrintHistory]:
+async def get_all_history(db: AsyncSession, cubiculo_id: uuid.UUID, skip: int = 0, limit: int = 50) -> list[PrintHistory]:
     result = await db.execute(
         select(PrintHistory)
         .where(PrintHistory.cubiculo_id == cubiculo_id)
         .order_by(PrintHistory.printed_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     entries = list(result.scalars().all())
 

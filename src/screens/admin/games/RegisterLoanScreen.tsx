@@ -110,17 +110,19 @@ export default function RegisterLoanScreen() {
     }
     setLoading(true);
     try {
-      await gamesService.registerLoan(
+      const loan = await gamesService.registerLoan(
         studentId.trim(),
         selectedGame.id,
         piecesComplete,
       );
-      Toast.show({
-        type: "success",
-        text1: "Préstamo registrado",
-        text2: `${selectedGame.name} prestado con éxito.`,
+      navigation.navigate("Receipt", {
+        type: "loan",
+        studentId: studentId.trim(),
+        studentName: studentInfo?.name,
+        gameName: selectedGame.name,
+        piecesComplete,
+        dueAt: loan.due_at,
       });
-      setTimeout(() => navigation.goBack(), 1500);
     } catch (err: any) {
       Toast.show({
         type: "error",

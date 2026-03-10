@@ -17,24 +17,26 @@ import { extractApiErrorMessage } from "../../utils/apiError";
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (!username.trim() || !password.trim()) {
       Toast.show({
         type: "error",
         text1: "Campos requeridos",
-        text2: "Ingresa tu correo y contraseña.",
+        text2: "Ingresa tu matrícula y contraseña.",
       });
       return;
     }
+    const raw = username.trim().toLowerCase();
+    const fullEmail = raw;
     setLoading(true);
     try {
-      await login(email.trim().toLowerCase(), password);
+      await login(fullEmail, password);
     } catch (err: any) {
       const msg = extractApiErrorMessage(
         err,
@@ -65,18 +67,21 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
         {/* Email */}
-        <Text style={styles.label}>Correo</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="matricula@alm.buap.mx"
-          placeholderTextColor="#aaa"
-          editable={!loading}
-        />
+        <Text style={styles.label}>Matrícula o correo</Text>
+        <View style={styles.emailRow}>
+          <TextInput
+            style={styles.emailInput}
+            value={username}
+            onChangeText={setUsername}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="matricula o correo completo"
+            placeholderTextColor="#aaa"
+            editable={!loading}
+            returnKeyType="next"
+          />
+        </View>
 
         {/* Password */}
         <Text style={styles.label}>Contraseña</Text>
@@ -242,6 +247,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
     marginBottom: 16,
     marginHorizontal: 28,
+  },
+  emailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    backgroundColor: "#fafafa",
+    marginBottom: 16,
+    marginHorizontal: 28,
+  },
+  emailInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 15,
+    color: "#222",
+  },
+  emailSuffix: {
+    fontSize: 14,
+    color: "#888",
+    paddingRight: 12,
+    fontWeight: "500",
   },
   btn: {
     backgroundColor: PURPLE,

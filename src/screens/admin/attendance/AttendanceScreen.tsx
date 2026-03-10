@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -39,28 +39,47 @@ export default function AttendanceScreen() {
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
 
-  const loadData = useCallback(async () => {
-    try {
-      const [status, history] = await Promise.all([
-        attendanceService.getStatus(),
-        attendanceService.getHistory(user?.id, todayStr),
-      ]);
-      setStatusData(status);
-      setTodayRecords(history);
-    } catch {
-      Toast.show({ type: "error", text1: "Error al cargar asistencia" });
-    }
-  }, [user?.id, todayStr]);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const loadData = useCallback(
+    async (quiet = false) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      if (!quiet) setLoading(true);
+      try {
+        const [status, history] = await Promise.all([
+          attendanceService.getStatus(),
+          attendanceService.getHistory(user?.id, todayStr),
+        ]);
+        if (!controller.signal.aborted) {
+          setStatusData(status);
+          setTodayRecords(history);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          Toast.show({ type: "error", text1: "Error al cargar asistencia" });
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [user?.id, todayStr],
+  );
 
   useEffect(() => {
-    setLoading(true);
-    loadData().finally(() => setLoading(false));
+    loadData();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [loadData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    await loadData(true);
   };
 
   const handleClock = async () => {

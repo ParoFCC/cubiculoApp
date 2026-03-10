@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -22,7 +28,7 @@ import { useAuthStore } from "../../../store/useAuthStore";
 const PURPLE = "#5C35D9";
 const PURPLE_LIGHT = "#EEE9FF";
 
-type FilterTab = "all" | "student" | "admin";
+type FilterTab = "all" | "pending" | "student" | "admin";
 
 export default function UsersAdminScreen() {
   const [users, setUsers] = useState<User[]>([]);
@@ -50,23 +56,44 @@ export default function UsersAdminScreen() {
     return map;
   }, [users, assignTarget]);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchUsers = useCallback(
     async (quiet = false) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       if (!quiet) setLoading(true);
       try {
         const role: UserRole | undefined =
-          filter === "all" ? undefined : (filter as UserRole);
+          filter === "all" || filter === "pending"
+            ? undefined
+            : (filter as UserRole);
         const { items } = await usersService.getAll(role);
-        setUsers(items);
+        if (!controller.signal.aborted) {
+          setUsers(items);
+        }
       } catch {
-        Toast.show({ type: "error", text1: "Error al cargar usuarios" });
+        if (!controller.signal.aborted) {
+          Toast.show({ type: "error", text1: "Error al cargar usuarios" });
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [filter],
   );
+
+  const displayUsers =
+    filter === "pending"
+      ? users.filter(
+          (u) =>
+            u.role === "admin" && !u.managed_cubiculo_id && !u.is_super_admin,
+        )
+      : users;
 
   const fetchCubiculos = useCallback(async () => {
     if (!isSuperAdmin) return;
@@ -80,6 +107,9 @@ export default function UsersAdminScreen() {
 
   useEffect(() => {
     fetchUsers();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchUsers]);
 
   useEffect(() => {
@@ -204,9 +234,16 @@ export default function UsersAdminScreen() {
     );
   };
 
+  const pendingCount = users.filter(
+    (u) => u.role === "admin" && !u.managed_cubiculo_id && !u.is_super_admin,
+  ).length;
+
   const filterTabs: { key: FilterTab; label: string }[] = [
     { key: "all", label: "Todos" },
-    { key: "student", label: "Estudiantes" },
+    {
+      key: "pending",
+      label: `Pendientes${pendingCount > 0 ? ` (${pendingCount})` : ""}`,
+    },
     { key: "admin", label: "Admins" },
   ];
 
@@ -245,11 +282,24 @@ export default function UsersAdminScreen() {
 
       {/* Count */}
       <Text style={styles.count}>
-        {users.length} usuario{users.length !== 1 ? "s" : ""}
+        {displayUsers.length} usuario{displayUsers.length !== 1 ? "s" : ""}
       </Text>
 
+      {filter === "pending" && pendingCount === 0 && (
+        <View style={styles.pendingBanner}>
+          <MaterialCommunityIcons
+            name="check-circle-outline"
+            size={20}
+            color="#16a34a"
+          />
+          <Text style={styles.pendingBannerText}>
+            Todos los admins tienen cubículo asignado
+          </Text>
+        </View>
+      )}
+
       <FlatList
-        data={users}
+        data={displayUsers}
         keyExtractor={(u) => u.id}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -557,6 +607,22 @@ const styles = StyleSheet.create({
     color: "#aaa",
     paddingHorizontal: 18,
     paddingBottom: 8,
+  },
+  pendingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: "#dcfce7",
+    borderRadius: 10,
+    padding: 12,
+  },
+  pendingBannerText: {
+    fontSize: 13,
+    color: "#15803d",
+    fontWeight: "600",
+    flex: 1,
   },
   list: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
   empty: { alignItems: "center", marginTop: 60, gap: 10 },

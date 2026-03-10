@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { printingService } from "../../../services/printingService";
@@ -20,6 +20,7 @@ import { extractApiErrorMessage } from "../../../utils/apiError";
 import { PrintBalance } from "../../../types/printing.types";
 
 export default function RegisterPrintScreen() {
+  const navigation = useNavigation<any>();
   const routeParams = useRoute<any>().params as
     | { preselectedStudentId?: string }
     | undefined;
@@ -31,12 +32,6 @@ export default function RegisterPrintScreen() {
   const [hasLookupResult, setHasLookupResult] = useState(false);
   const [balance, setBalance] = useState<PrintBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
-  const [lastResult, setLastResult] = useState<{
-    type: "free" | "paid";
-    pages: number;
-    cost: number;
-    studentId: string;
-  } | null>(null);
 
   const lookupStudent = async (id: string) => {
     const normalizedId = id.trim().toLowerCase();
@@ -101,21 +96,23 @@ export default function RegisterPrintScreen() {
       return;
     }
     setLoading(true);
+    const registeredStudentId = studentId.trim();
     try {
       const result = await printingService.registerPrint({
-        student_id: studentId.trim(),
+        student_id: registeredStudentId,
         pages: pagesNum,
       });
-      setLastResult({
-        type: result.type,
+      navigation.navigate("Receipt", {
+        type: "print",
+        studentId: registeredStudentId,
+        studentName: studentInfo?.name,
         pages: result.pages,
         cost: result.cost,
-        studentId: studentId.trim().toLowerCase(),
+        printType: result.type,
       });
       setStudentId("");
       setPages("");
       setStudentInfo(null);
-      setBalance(null);
       setHasLookupResult(false);
     } catch (err: any) {
       Toast.show({
@@ -141,30 +138,6 @@ export default function RegisterPrintScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        {lastResult && (
-          <View
-            style={[
-              styles.resultCard,
-              lastResult.type === "free"
-                ? styles.resultFree
-                : styles.resultPaid,
-            ]}
-          >
-            <Text style={styles.resultTitle}>
-              {lastResult.type === "free"
-                ? "✅ Impresión gratuita"
-                : "💰 Impresión de pago"}
-            </Text>
-            <Text style={styles.resultBody}>
-              {lastResult.studentId} · {lastResult.pages} página
-              {lastResult.pages !== 1 ? "s" : ""} —{" "}
-              {lastResult.type === "free"
-                ? "Sin costo"
-                : `$${lastResult.cost.toFixed(2)}`}
-            </Text>
-          </View>
-        )}
-
         <Text style={styles.label}>ID del Estudiante</Text>
         <TextInput
           style={styles.input}

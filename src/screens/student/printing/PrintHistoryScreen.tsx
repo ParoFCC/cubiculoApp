@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -27,21 +27,33 @@ export default function PrintHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<FilterTab>("all");
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchHistory = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await printingService.getMyHistory();
-      setHistory(data);
+      if (!controller.signal.aborted) {
+        setHistory(data);
+      }
     } catch {
       // keep existing list on error
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchHistory();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchHistory]);
 
   const filtered =

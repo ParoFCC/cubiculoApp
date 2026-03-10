@@ -2,12 +2,13 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from fastapi import HTTPException
 
 from app.models.game import Game
 from app.models.game_loan import GameLoan, LoanStatus
 from app.models.user import User
-from app.schemas.games import GameCreate, GameUpdate, LoanCreate
+from app.schemas.games import GameCreate, GameUpdate, LoanCreate, ReturnPayload
 import app.services.users_service as users_svc
 
 
@@ -52,11 +53,13 @@ async def update_game(
 
 # ── Loans ─────────────────────────────────────────────────────────────────
 
-async def list_loans(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[GameLoan]:
+async def list_loans(db: AsyncSession, cubiculo_id: uuid.UUID, skip: int = 0, limit: int = 50) -> list[GameLoan]:
     result = await db.execute(
         select(GameLoan)
         .where(GameLoan.cubiculo_id == cubiculo_id)
         .order_by(GameLoan.borrowed_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     loans = list(result.scalars().all())
 
@@ -87,7 +90,13 @@ async def list_loans(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[GameLoan]
 async def register_loan(
     db: AsyncSession, payload: LoanCreate, admin: User, cubiculo_id: uuid.UUID
 ) -> GameLoan:
-    game = await get_game(db, payload.game_id)
+    # Lock the game row to prevent concurrent over-lending
+    result = await db.execute(
+        select(Game).where(Game.id == payload.game_id).with_for_update()
+    )
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=404, detail="Juego no encontrado")
     if game.quantity_avail < 1:
         raise HTTPException(status_code=400, detail="No hay unidades disponibles del juego")
 
@@ -117,17 +126,25 @@ async def register_loan(
 
 
 async def register_return(
-    db: AsyncSession, loan_id: uuid.UUID
+    db: AsyncSession, loan_id: uuid.UUID, payload: ReturnPayload | None = None
 ) -> GameLoan:
-    loan = await db.get(GameLoan, loan_id)
+    loan = (await db.execute(
+        select(GameLoan).where(GameLoan.id == loan_id).with_for_update()
+    )).scalar_one_or_none()
     if not loan:
         raise HTTPException(status_code=404, detail="Préstamo no encontrado")
     if loan.status == LoanStatus.returned:
         raise HTTPException(status_code=400, detail="El juego ya fue devuelto")
 
-    game = await db.get(Game, loan.game_id)
+    game = (await db.execute(
+        select(Game).where(Game.id == loan.game_id).with_for_update()
+    )).scalar_one_or_none()
     loan.status = LoanStatus.returned
     loan.returned_at = datetime.now(timezone.utc)
+    if payload:
+        if payload.notes is not None:
+            loan.notes = payload.notes
+        loan.pieces_complete = payload.pieces_complete
     if game:
         game.quantity_avail += 1
     await db.commit()

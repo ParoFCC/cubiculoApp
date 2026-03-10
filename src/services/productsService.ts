@@ -5,23 +5,40 @@ import {
   RegisterSalePayload,
   CashRegister,
 } from "../types/products.types";
+import { getCached, setCached, invalidateCache } from "../utils/catalogCache";
+
+const PRODUCTS_CACHE_KEY = "products_catalog";
 
 export const productsService = {
-  getCatalog: (): Promise<Product[]> =>
-    api.get<Product[]>("/products").then((r) => r.data),
+  getCatalog: (): Promise<Product[]> => {
+    const cached = getCached<Product[]>(PRODUCTS_CACHE_KEY);
+    if (cached) return Promise.resolve(cached);
+    return api.get<Product[]>("/products").then((r) => {
+      setCached(PRODUCTS_CACHE_KEY, r.data);
+      return r.data;
+    });
+  },
 
   // Admin
   createProduct: (data: Omit<Product, "id">): Promise<Product> =>
-    api.post<Product>("/products", data).then((r) => r.data),
+    api.post<Product>("/products", data).then((r) => {
+      invalidateCache(PRODUCTS_CACHE_KEY);
+      return r.data;
+    }),
 
   updateProduct: (id: string, data: Partial<Product>): Promise<Product> =>
-    api.patch<Product>(`/products/${id}`, data).then((r) => r.data),
+    api.patch<Product>(`/products/${id}`, data).then((r) => {
+      invalidateCache(PRODUCTS_CACHE_KEY);
+      return r.data;
+    }),
 
   deleteAllProducts: (): Promise<{ deleted: number }> =>
     api.delete<{ deleted: number }>("/products").then((r) => r.data),
 
   deleteProduct: (id: string): Promise<void> =>
-    api.delete(`/products/${id}`).then(() => undefined),
+    api.delete(`/products/${id}`).then(() => {
+      invalidateCache(PRODUCTS_CACHE_KEY);
+    }),
 
   registerSale: (payload: RegisterSalePayload): Promise<Sale> =>
     api.post<Sale>("/sales", payload).then((r) => r.data),

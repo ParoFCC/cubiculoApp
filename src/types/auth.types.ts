@@ -11,8 +11,6 @@ export interface User {
   managed_cubiculo_id?: string | null;
 }
 
-export const SUPER_ADMIN_ID = "be202329205";
-
 export interface AuthTokens {
   access_token: string;
   refresh_token: string;

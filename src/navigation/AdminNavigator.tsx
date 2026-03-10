@@ -31,6 +31,9 @@ import UsersAdminScreen from "../screens/admin/users/UsersAdminScreen";
 // Admin — Cubículos
 import CubiculosManagerScreen from "../screens/admin/cubiculos/CubiculosManagerScreen";
 
+// Admin — Receipt
+import ReceiptScreen from "../screens/admin/common/ReceiptScreen";
+
 // Admin — Attendance
 import AttendanceScreen from "../screens/admin/attendance/AttendanceScreen";
 import AttendanceHistoryScreen from "../screens/admin/attendance/AttendanceHistoryScreen";
@@ -225,6 +228,11 @@ function HomeStack() {
         name="CubiculosAdmin"
         component={CubiculosManagerScreen}
         options={{ title: "Cubículos" }}
+      />
+      <Stack.Screen
+        name="Receipt"
+        component={ReceiptScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

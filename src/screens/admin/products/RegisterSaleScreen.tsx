@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   TextInput,
   RefreshControl,
   Image,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -40,15 +42,25 @@ export default function RegisterSaleScreen({ navigation }: Props) {
     "loading",
   );
   const [presetApplied, setPresetApplied] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchProducts = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await productsService.getCatalog();
-      setProducts(data.filter((p) => p.is_active && p.stock > 0));
+      if (!controller.signal.aborted) {
+        setProducts(data.filter((p) => p.is_active && p.stock > 0));
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -64,6 +76,9 @@ export default function RegisterSaleScreen({ navigation }: Props) {
   useEffect(() => {
     fetchProducts();
     fetchCash();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchProducts, fetchCash]);
 
   useEffect(() => {
@@ -94,6 +109,10 @@ export default function RegisterSaleScreen({ navigation }: Props) {
     (sum, i) => sum + i.product.price * i.quantity,
     0,
   );
+  const CARD_COMMISSION_RATE = 0.04176;
+  const cardCommission =
+    paymentMethod === "card" ? cartTotal * CARD_COMMISSION_RATE : 0;
+  const grandTotal = cartTotal + cardCommission;
 
   const lookupStudent = async (id: string) => {
     const normalizedId = id.trim().toLowerCase();
@@ -151,8 +170,19 @@ export default function RegisterSaleScreen({ navigation }: Props) {
     }
     setRegistering(true);
     try {
+      const saleItems = cart.map((c) => ({
+        name: c.product.name,
+        quantity: c.quantity,
+        price: c.product.price,
+      }));
+      const saleTotal = cartTotal;
+      const saleCommission = cardCommission;
+      const salePaymentMethod = paymentMethod;
+      const saleStudentId = studentId.trim() || undefined;
+      const saleStudentName = studentInfo?.name;
       await productsService.registerSale({
-        student_id: studentId.trim() || undefined,
+        student_id: saleStudentId,
+        payment_method: paymentMethod,
         items: cart.map((c) => ({
           product_id: c.product.id,
           quantity: c.quantity,
@@ -161,12 +191,17 @@ export default function RegisterSaleScreen({ navigation }: Props) {
       setCart([]);
       setStudentId("");
       setStudentInfo(null);
-      Toast.show({
-        type: "success",
-        text1: "Venta registrada",
-        text2: `Total: $${cartTotal.toFixed(2)}`,
-      });
+      setPaymentMethod("cash");
       fetchProducts();
+      navigation.navigate("Receipt", {
+        type: "sale",
+        studentId: saleStudentId,
+        studentName: saleStudentName,
+        items: saleItems,
+        total: saleTotal,
+        paymentMethod: salePaymentMethod,
+        cardCommission: saleCommission,
+      });
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -360,16 +395,80 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                     </TouchableOpacity>
                   </View>
                 ))}
+                {/* Payment method toggle */}
+                <View style={styles.paymentToggleRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentBtn,
+                      paymentMethod === "cash" && styles.paymentBtnActive,
+                    ]}
+                    onPress={() => setPaymentMethod("cash")}
+                  >
+                    <MaterialCommunityIcons
+                      name="cash"
+                      size={16}
+                      color={paymentMethod === "cash" ? "#fff" : "#6b7280"}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentBtnText,
+                        paymentMethod === "cash" && styles.paymentBtnTextActive,
+                      ]}
+                    >
+                      Efectivo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentBtn,
+                      paymentMethod === "card" && styles.paymentBtnActiveCard,
+                    ]}
+                    onPress={() => setPaymentMethod("card")}
+                  >
+                    <MaterialCommunityIcons
+                      name="credit-card-outline"
+                      size={16}
+                      color={paymentMethod === "card" ? "#fff" : "#6b7280"}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentBtnText,
+                        paymentMethod === "card" && styles.paymentBtnTextActive,
+                      ]}
+                    >
+                      Tarjeta
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {paymentMethod === "card" && (
+                  <View style={styles.commissionRow}>
+                    <MaterialCommunityIcons
+                      name="percent"
+                      size={13}
+                      color="#b45309"
+                    />
+                    <Text style={styles.commissionText}>
+                      Comisión 4.176%: +${cardCommission.toFixed(2)}
+                    </Text>
+                    <Text style={styles.grandTotalText}>
+                      Cobrar: ${grandTotal.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
                 <TouchableOpacity
                   style={[styles.confirmBtn, registering && styles.disabled]}
-                  onPress={handleRegister}
+                  onPress={() => setConfirmVisible(true)}
                   disabled={registering}
                 >
                   {registering ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.confirmBtnText}>
-                      Confirmar Venta — ${cartTotal.toFixed(2)}
+                      {paymentMethod === "card"
+                        ? `Confirmar Venta (tarjeta) — $${grandTotal.toFixed(
+                            2,
+                          )}`
+                        : `Confirmar Venta — $${cartTotal.toFixed(2)}`}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -421,6 +520,109 @@ export default function RegisterSaleScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
       />
+
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Confirmar venta</Text>
+            <ScrollView
+              style={{ maxHeight: 220 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {cart.map((c) => (
+                <View key={c.product.id} style={styles.modalRow}>
+                  <Text style={styles.modalItem}>
+                    {c.product.name} × {c.quantity}
+                  </Text>
+                  <Text style={styles.modalItemPrice}>
+                    ${(c.product.price * c.quantity).toFixed(2)}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+            <View style={styles.modalDivider} />
+            <View style={styles.modalRow}>
+              <Text style={styles.modalTotal}>Subtotal</Text>
+              <Text style={styles.modalTotalPrice}>
+                ${cartTotal.toFixed(2)}
+              </Text>
+            </View>
+            {paymentMethod === "card" && (
+              <View style={styles.modalRow}>
+                <Text
+                  style={[
+                    styles.modalTotal,
+                    { fontSize: 13, color: "#b45309" },
+                  ]}
+                >
+                  Comisión tarjeta (4.176%)
+                </Text>
+                <Text
+                  style={[
+                    styles.modalTotalPrice,
+                    { fontSize: 14, color: "#b45309" },
+                  ]}
+                >
+                  +${cardCommission.toFixed(2)}
+                </Text>
+              </View>
+            )}
+            {paymentMethod === "card" && (
+              <View style={[styles.modalRow, { marginTop: 2 }]}>
+                <Text style={styles.modalTotal}>Total a cobrar</Text>
+                <Text style={[styles.modalTotalPrice, { color: "#0369a1" }]}>
+                  ${grandTotal.toFixed(2)}
+                </Text>
+              </View>
+            )}
+            <View style={styles.modalPaymentBadge}>
+              <MaterialCommunityIcons
+                name={paymentMethod === "card" ? "credit-card-outline" : "cash"}
+                size={15}
+                color={paymentMethod === "card" ? "#0369a1" : "#15803d"}
+              />
+              <Text
+                style={[
+                  styles.modalPaymentText,
+                  { color: paymentMethod === "card" ? "#0369a1" : "#15803d" },
+                ]}
+              >
+                {paymentMethod === "card"
+                  ? "Pago con tarjeta"
+                  : "Pago en efectivo"}
+              </Text>
+            </View>
+            {studentInfo && (
+              <Text style={styles.modalStudent}>🎓 {studentInfo.name}</Text>
+            )}
+            <TouchableOpacity
+              style={[styles.modalConfirmBtn, registering && styles.disabled]}
+              onPress={() => {
+                setConfirmVisible(false);
+                handleRegister();
+              }}
+              disabled={registering}
+            >
+              {registering ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.confirmBtnText}>Registrar venta</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelBtn}
+              onPress={() => setConfirmVisible(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -559,6 +761,67 @@ const styles = StyleSheet.create({
   },
   cartItem: { fontSize: 14, color: "#444" },
   cartRemove: { fontSize: 20, color: "#E53935", paddingHorizontal: 8 },
+  // Payment method toggle
+  paymentToggleRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  paymentBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f9fafb",
+  },
+  paymentBtnActive: {
+    backgroundColor: "#16a34a",
+    borderColor: "#16a34a",
+  },
+  paymentBtnActiveCard: {
+    backgroundColor: "#0369a1",
+    borderColor: "#0369a1",
+  },
+  paymentBtnText: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
+  paymentBtnTextActive: { color: "#fff" },
+  commissionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#fff7ed",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  commissionText: {
+    fontSize: 12,
+    color: "#b45309",
+    fontWeight: "600",
+    flex: 1,
+  },
+  grandTotalText: { fontSize: 13, color: "#0369a1", fontWeight: "800" },
+  // Modal payment badge
+  modalPaymentBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "#f0f9ff",
+    alignSelf: "flex-start",
+  },
+  modalPaymentText: { fontSize: 13, fontWeight: "700" },
   confirmBtn: {
     backgroundColor: PURPLE,
     borderRadius: 10,
@@ -603,4 +866,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   inCartBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  // Confirm modal
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1a1a2e",
+    marginBottom: 14,
+  },
+  modalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 5,
+  },
+  modalItem: { fontSize: 14, color: "#374151", flex: 1 },
+  modalItemPrice: { fontSize: 14, fontWeight: "700", color: "#374151" },
+  modalDivider: { height: 1, backgroundColor: "#e5e7eb", marginVertical: 10 },
+  modalTotal: { fontSize: 15, fontWeight: "800", color: "#1a1a2e" },
+  modalTotalPrice: { fontSize: 18, fontWeight: "800", color: PURPLE },
+  modalStudent: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  modalConfirmBtn: {
+    backgroundColor: PURPLE,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  modalCancelBtn: {
+    backgroundColor: "#F0F0F0",
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  modalCancelText: { color: "#555", fontWeight: "700", fontSize: 14 },
 });

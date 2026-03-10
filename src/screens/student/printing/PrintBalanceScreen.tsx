@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -19,21 +19,33 @@ export default function PrintBalanceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchBalance = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await printingService.getMyBalance();
-      setBalance(data);
+      if (!controller.signal.aborted) {
+        setBalance(data);
+      }
     } catch {
       // keep previous data on refresh error; loading hides error on first load
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchBalance();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchBalance]);
 
   if (loading) {

@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -58,10 +58,12 @@ async def get_my_history(
 @router.get("/history/all", response_model=list[PrintJobOut],
             dependencies=[Depends(require_admin)])
 async def get_all_history(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    history = await svc.get_all_history(db, cubiculo_id)
+    history = await svc.get_all_history(db, cubiculo_id, skip=skip, limit=limit)
     return [PrintJobOut.from_orm_with_names(item) for item in history]
 
 

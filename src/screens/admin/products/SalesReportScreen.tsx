@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -58,8 +58,13 @@ export default function SalesReportScreen() {
       .catch(() => {});
   }, []);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchSales = useCallback(
     async (p: Period = period, quiet = false) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       if (!quiet) setLoading(true);
       try {
         let data: Sale[];
@@ -69,10 +74,14 @@ export default function SalesReportScreen() {
           const range = getPeriodRange(p);
           data = await productsService.getSalesReport(range.from!, range.to!);
         }
-        setSales(data);
+        if (!controller.signal.aborted) {
+          setSales(data);
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [period],
@@ -80,6 +89,9 @@ export default function SalesReportScreen() {
 
   useEffect(() => {
     fetchSales(period);
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [period]);
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);

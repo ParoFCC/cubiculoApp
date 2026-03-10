@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -51,20 +51,32 @@ export default function InventoryScreen() {
     quantity_total: "1",
   });
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchGames = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await gamesService.getCatalog();
-      setGames(data);
+      if (!controller.signal.aborted) {
+        setGames(data);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       fetchGames();
+      return () => {
+        abortRef.current?.abort();
+      };
     }, [fetchGames]),
   );
 

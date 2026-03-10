@@ -21,6 +21,8 @@ export interface Sale {
   student_id?: string;
   student_name: string;
   total: number;
+  payment_method: "cash" | "card";
+  card_commission: number;
   sold_at: string;
   items: SaleItem[];
 }
@@ -28,6 +30,7 @@ export interface Sale {
 export interface RegisterSalePayload {
   student_id?: string;
   items: { product_id: string; quantity: number }[];
+  payment_method?: "cash" | "card";
 }
 
 export type CashRegisterStatus = "open" | "closed";

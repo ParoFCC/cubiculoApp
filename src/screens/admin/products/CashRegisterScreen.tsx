@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -38,23 +38,35 @@ export default function CashRegisterScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [amount, setAmount] = useState("");
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const [curr, hist] = await Promise.allSettled([
         productsService.getCashRegisterStatus(),
         productsService.getCashRegisterHistory(),
       ]);
-      setStatus(curr.status === "fulfilled" ? curr.value : null);
-      setHistory(hist.status === "fulfilled" ? hist.value : []);
+      if (!controller.signal.aborted) {
+        setStatus(curr.status === "fulfilled" ? curr.value : null);
+        setHistory(hist.status === "fulfilled" ? hist.value : []);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchData();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchData]);
 
   const isOpen = status?.status === "open";

@@ -89,10 +89,12 @@ async def register_sale(
 async def list_sales(
     from_date: datetime | None = Query(default=None, alias="from"),
     to_date: datetime | None = Query(default=None, alias="to"),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    sales = await svc.list_sales(db, cubiculo_id, from_date, to_date)
+    sales = await svc.list_sales(db, cubiculo_id, from_date, to_date, skip=skip, limit=limit)
     return [SaleOut.from_orm_with_names(item) for item in sales]
 
 

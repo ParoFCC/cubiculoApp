@@ -1,12 +1,12 @@
 import uuid
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Body, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.games import (
     GameCreate, GameUpdate, GameOut,
-    LoanCreate, LoanRequest, LoanOut,
+    LoanCreate, LoanRequest, LoanOut, ReturnPayload,
 )
 from app.dependencies.auth import get_current_user
 from app.dependencies.roles import require_admin
@@ -30,10 +30,12 @@ async def list_games(
 @router.get("/loans", response_model=list[LoanOut],
             dependencies=[Depends(require_admin)])
 async def list_loans(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    loans = await svc.list_loans(db, cubiculo_id)
+    loans = await svc.list_loans(db, cubiculo_id, skip=skip, limit=limit)
     return [LoanOut.from_orm_with_names(item) for item in loans]
 
 
@@ -84,10 +86,11 @@ async def register_loan(
 @router.patch("/loans/{loan_id}/return", response_model=LoanOut)
 async def register_return(
     loan_id: uuid.UUID,
+    payload: ReturnPayload = Body(default=ReturnPayload()),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    loan = await svc.register_return(db, loan_id)
+    loan = await svc.register_return(db, loan_id, payload)
     return LoanOut.from_orm_with_names(loan)
 
 

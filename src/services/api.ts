@@ -62,6 +62,11 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Never try to refresh for auth endpoints themselves
+      if (originalRequest.url?.startsWith("/auth/")) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -88,7 +93,18 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         storage.clear();
-        // Navigation to login is handled by auth store subscriber
+        // Notify the user before clearing — import Toast lazily to avoid circular deps
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const Toast = require("react-native-toast-message").default;
+          Toast.show({
+            type: "error",
+            text1: "Sesión expirada",
+            text2: "Vuelve a iniciar sesión.",
+          });
+        } catch {
+          /* ignore if Toast not mounted */
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

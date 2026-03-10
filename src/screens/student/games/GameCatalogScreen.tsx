@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -53,21 +53,33 @@ export default function GameCatalogScreen() {
     navigation.navigate("GameDetail", { game });
   };
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchGames = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await gamesService.getCatalog();
-      setGames(data);
+      if (!controller.signal.aborted) {
+        setGames(data);
+      }
     } catch {
       // keep existing list on error
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchGames();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchGames]);
 
   const filtered = games.filter((g) => {

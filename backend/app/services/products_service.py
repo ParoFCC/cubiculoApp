@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
 from app.models.products import (
-    Product, Sale, SaleItem, CashRegister, CashRegisterStatus,
+    Product, Sale, SaleItem, CashRegister, CashRegisterStatus, PaymentMethod,
 )
 from app.models.user import User
 from app.schemas.products import ProductCreate, ProductUpdate, SaleCreate, CashOpenPayload, CashClosePayload
@@ -96,7 +96,9 @@ async def register_sale(
         student_id=student_uuid,
         student_identifier=payload.student_id,
         cash_register_id=cash.id if cash else None,
+        payment_method=PaymentMethod(payload.payment_method) if payload.payment_method in ("cash", "card") else PaymentMethod.cash,
         total=0,
+        card_commission=0,
     )
     db.add(sale)
     await db.flush()
@@ -126,6 +128,10 @@ async def register_sale(
         ))
 
     sale.total = round(total, 2)
+    if sale.payment_method == PaymentMethod.card:
+        sale.card_commission = round(total * 0.04176, 2)
+    else:
+        sale.card_commission = 0.0
     await db.commit()
     # Re-fetch with items loaded
     refreshed = await db.execute(
@@ -142,12 +148,16 @@ async def list_sales(
     cubiculo_id: uuid.UUID,
     from_date: datetime | None = None,
     to_date: datetime | None = None,
+    skip: int = 0,
+    limit: int = 50,
 ) -> list[Sale]:
     query = (
         select(Sale)
         .options(selectinload(Sale.items))
         .where(Sale.cubiculo_id == cubiculo_id)
         .order_by(Sale.sold_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
     if from_date:
         query = query.where(Sale.sold_at >= from_date)

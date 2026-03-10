@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -19,22 +19,34 @@ export default function PrintHistoryAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchHistory = useCallback(async (quiet = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (!quiet) setLoading(true);
     try {
       const data = await printingService.getAllHistory();
-      setHistory(data);
+      if (!controller.signal.aborted) {
+        setHistory(data);
+      }
     } catch {
       // keep existing list on error
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       fetchHistory();
+      return () => {
+        abortRef.current?.abort();
+      };
     }, [fetchHistory]),
   );
 

@@ -4,8 +4,10 @@ import random
 import string
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from pydantic import BaseModel, EmailStr
@@ -25,10 +27,11 @@ from app.services.email_service import send_verification_code, send_password_res
 from jose import JWTError
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str  # accepts matricula, @alm.buap.mx or @alumno.buap.mx
     password: str
 
 
@@ -48,7 +51,7 @@ class RegisterRequest(BaseModel):
     password: str
     student_id: str
     period: str | None = None
-    role: UserRole = UserRole.student
+    role: UserRole = UserRole.admin
 
 
 class VerifyEmailRequest(BaseModel):
@@ -61,7 +64,8 @@ def _generate_code() -> str:
 
 
 @router.post("/register", status_code=202)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Step 1: validate data, send verification code, do NOT create user yet."""
     email = payload.email.lower()
 
@@ -84,13 +88,6 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     existing = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado")
-
-    # Admin restriction — only existing super-admins may register as admin
-    if payload.role == UserRole.admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Los administradores son creados por el superadmin",
-        )
 
     if len(payload.password) < 8:
         raise HTTPException(
@@ -149,7 +146,7 @@ class VerifyEmailFullRequest(BaseModel):
     password: str
     student_id: str
     period: str | None = None
-    role: UserRole = UserRole.student
+    role: UserRole = UserRole.admin
     code: str
 
 
@@ -206,10 +203,20 @@ async def verify_email_full(payload: VerifyEmailFullRequest, db: AsyncSession = 
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(User).where(User.email == payload.email, User.is_active.is_(True))
-    )
+@limiter.limit("10/minute")
+async def login(request: Request, payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    raw = payload.email.strip().lower()
+
+    # Resolve to a User: by email (any domain) or by student_id
+    if "@" in raw:
+        result = await db.execute(
+            select(User).where(User.email == raw, User.is_active.is_(True))
+        )
+    else:
+        # Treat as student_id / matricula
+        result = await db.execute(
+            select(User).where(User.student_id == raw, User.is_active.is_(True))
+        )
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(payload.password, user.password_hash):

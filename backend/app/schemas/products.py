@@ -66,6 +66,7 @@ class SaleItemIn(BaseModel):
 class SaleCreate(BaseModel):
     student_id: str | None = None  # Institutional student ID (optional)
     items: list[SaleItemIn]
+    payment_method: str = "cash"  # "cash" or "card"
 
     @field_validator("student_id")
     @classmethod
@@ -99,6 +100,8 @@ class SaleOut(BaseModel):
     student_id: str | None
     student_name: str = ""
     total: float
+    payment_method: str = "cash"
+    card_commission: float = 0.0
     sold_at: datetime
     items: list[SaleItemOut] = []
 
@@ -113,6 +116,8 @@ class SaleOut(BaseModel):
             student_id=getattr(obj, "student_identifier", None),
             student_name=getattr(obj, "student_name", "") or "",
             total=float(obj.total),
+            payment_method=getattr(obj, "payment_method", "cash") or "cash",
+            card_commission=float(getattr(obj, "card_commission", 0) or 0),
             sold_at=obj.sold_at,
             items=list(getattr(obj, "items", []) or []),
         )

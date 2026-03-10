@@ -70,6 +70,11 @@ class LoanRequest(BaseModel):
     game_id: uuid.UUID
 
 
+class ReturnPayload(BaseModel):
+    notes: str | None = None
+    pieces_complete: bool = True
+
+
 class LoanOut(BaseModel):
     id: uuid.UUID
     game_id: uuid.UUID

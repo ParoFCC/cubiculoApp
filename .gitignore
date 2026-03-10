@@ -11,6 +11,9 @@ node_modules/
 .expo/
 dist/
 build/
+android/.gradle/
+android/build/
+android/app/build/
 *.jks
 *.keystore
 android/app/debug.keystore

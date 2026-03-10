@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+from pydantic import model_validator
+from typing import List, Any
+import json
 
 
 class Settings(BaseSettings):
@@ -15,8 +17,28 @@ class Settings(BaseSettings):
     # Database (Neon PostgreSQL)
     DATABASE_URL: str  # postgresql+asyncpg://user:pass@host/db
 
-    # CORS
-    ALLOWED_ORIGINS: List[str] = ["*"]
+    # CORS – stored raw, parsed by model validator below
+    # Accepts JSON array ("["x","y"]") or comma-separated ("x,y" or "*")
+    ALLOWED_ORIGINS: Any = "*"
+
+    @model_validator(mode="after")
+    def _parse_origins(self) -> "Settings":
+        v = self.ALLOWED_ORIGINS
+        if isinstance(v, list):
+            pass
+        elif isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                try:
+                    v = json.loads(v)
+                except json.JSONDecodeError:
+                    # Remove brackets and split: [a,b] -> ["a","b"]
+                    inner = v.strip("[]")
+                    v = [i.strip() for i in inner.split(",") if i.strip()] or ["*"]
+            else:
+                v = [i.strip() for i in v.split(",") if i.strip()] or ["*"]
+        self.ALLOWED_ORIGINS = v
+        return self
 
     # Printing config
     FREE_PRINTS_PER_PERIOD: int = 10

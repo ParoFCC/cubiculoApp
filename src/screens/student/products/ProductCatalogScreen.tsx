@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
@@ -28,6 +29,16 @@ const CATEGORY_MAP: Record<string, CatDef> = {
   default: { icon: "package-variant", bg: "#EEE9FF", color: PURPLE },
 };
 
+type CategoryFilter = string | "all";
+
+const CATEGORY_CHIPS: { key: CategoryFilter; label: string; icon: string }[] = [
+  { key: "all", label: "Todos", icon: "view-grid-outline" },
+  { key: "bebida", label: "Bebidas", icon: "bottle-soda-classic-outline" },
+  { key: "comida", label: "Comida", icon: "food-apple-outline" },
+  { key: "snack", label: "Snacks", icon: "cookie-outline" },
+  { key: "papeleria", label: "Papelería", icon: "pencil-box-outline" },
+];
+
 function getCat(category: string | null | undefined): CatDef {
   if (!category) return CATEGORY_MAP.default;
   return CATEGORY_MAP[category.toLowerCase()] ?? CATEGORY_MAP.default;
@@ -38,6 +49,7 @@ export default function ProductCatalogScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   const loadProducts = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -56,9 +68,14 @@ export default function ProductCatalogScreen() {
     loadProducts();
   }, [loadProducts]);
 
-  const filtered = products.filter(
-    (p) => !search || p.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = products.filter((p) => {
+    const matchSearch =
+      !search || p.name.toLowerCase().includes(search.toLowerCase());
+    const matchCat =
+      categoryFilter === "all" ||
+      (p.category ?? "").toLowerCase() === categoryFilter;
+    return matchSearch && matchCat;
+  });
 
   if (loading) {
     return (
@@ -93,6 +110,45 @@ export default function ProductCatalogScreen() {
           </TouchableOpacity>
         ) : null}
       </View>
+
+      {/* Category filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+        style={styles.chipsScroll}
+      >
+        {CATEGORY_CHIPS.map((chip) => {
+          const active = categoryFilter === chip.key;
+          const catDef =
+            chip.key === "all"
+              ? { color: PURPLE, bg: "#EEE9FF" }
+              : CATEGORY_MAP[chip.key] ?? CATEGORY_MAP.default;
+          return (
+            <TouchableOpacity
+              key={chip.key}
+              style={[
+                styles.chip,
+                active && {
+                  backgroundColor: chip.key === "all" ? PURPLE : catDef.color,
+                },
+              ]}
+              onPress={() => setCategoryFilter(chip.key)}
+              activeOpacity={0.75}
+            >
+              <MaterialCommunityIcons
+                name={chip.icon}
+                size={14}
+                color={active ? "#fff" : "#555"}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {chip.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       <FlatList
         data={filtered}
@@ -187,6 +243,23 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 14, color: "#1a1a2e", padding: 0 },
+  chipsScroll: { maxHeight: 48 },
+  chipsRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    flexDirection: "row",
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0EFF5",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  chipText: { fontSize: 13, fontWeight: "600", color: "#555" },
+  chipTextActive: { color: "#fff" },
   count: {
     fontSize: 12,
     color: "#9ca3af",

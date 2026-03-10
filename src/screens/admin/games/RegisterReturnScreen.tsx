@@ -51,7 +51,7 @@ export default function RegisterReturnScreen() {
           Toast.show({
             type: "success",
             text1: "Devoluci\u00f3n registrada",
-            text2: loan.game?.name ?? "Juego devuelto",
+            text2: loan.game_name ?? "Juego devuelto",
           });
         })
         .catch((err: any) =>
@@ -69,7 +69,7 @@ export default function RegisterReturnScreen() {
         type: "info",
         text1: "Confirmar devoluci\u00f3n",
         text2: `Toca \"Confirmar\" para devolver ${
-          loan.game?.name ?? "el juego"
+          loan.game_name ?? "el juego"
         }.`,
       });
     }
@@ -104,7 +104,7 @@ export default function RegisterReturnScreen() {
       renderItem={({ item }) => (
         <View style={styles.card}>
           <View style={styles.info}>
-            <Text style={styles.gameName}>{item.game?.name ?? "—"}</Text>
+            <Text style={styles.gameName}>{item.game_name ?? "—"}</Text>
             <Text style={styles.meta}>
               Prestado:{" "}
               {format(new Date(item.borrowed_at), "d MMM yyyy", { locale: es })}

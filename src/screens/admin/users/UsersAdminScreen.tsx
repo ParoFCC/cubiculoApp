@@ -8,11 +8,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
+  ScrollView,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { usersService } from "../../../services/usersService";
-import { User, UserRole, SUPER_ADMIN_ID } from "../../../types/auth.types";
+import { cubiculosService } from "../../../services/cubiculosService";
+import { User, UserRole } from "../../../types/auth.types";
+import { Cubiculo } from "../../../types/cubiculo.types";
 import { useAuthStore } from "../../../store/useAuthStore";
 
 const PURPLE = "#5C35D9";
@@ -25,8 +29,11 @@ export default function UsersAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [cubiculos, setCubiculos] = useState<Cubiculo[]>([]);
+  const [assignTarget, setAssignTarget] = useState<User | null>(null);
+  const [assigning, setAssigning] = useState(false);
   const currentUser = useAuthStore((s) => s.user);
-  const isSuperAdmin = currentUser?.student_id === SUPER_ADMIN_ID;
+  const isSuperAdmin = currentUser?.is_super_admin === true;
 
   const fetchUsers = useCallback(
     async (quiet = false) => {
@@ -46,9 +53,42 @@ export default function UsersAdminScreen() {
     [filter],
   );
 
+  const fetchCubiculos = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    try {
+      const data = await cubiculosService.getAllAdmin();
+      setCubiculos(data);
+    } catch {
+      // non-critical
+    }
+  }, [isSuperAdmin]);
+
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  useEffect(() => {
+    fetchCubiculos();
+  }, [fetchCubiculos]);
+
+  const handleAssignCubiculo = async (cubiculoId: string | null) => {
+    if (!assignTarget) return;
+    setAssigning(true);
+    try {
+      await usersService.assignCubiculo(assignTarget.id, cubiculoId);
+      Toast.show({
+        type: "success",
+        text1: cubiculoId ? "Cubículo asignado" : "Cubículo removido",
+        text2: assignTarget.name,
+      });
+      setAssignTarget(null);
+      fetchUsers(true);
+    } catch {
+      Toast.show({ type: "error", text1: "No se pudo asignar el cubículo" });
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   const handleDeactivate = (user: User) => {
     if (user.id === currentUser?.id) {
@@ -104,6 +144,44 @@ export default function UsersAdminScreen() {
               fetchUsers(true);
             } catch {
               Toast.show({ type: "error", text1: "No se pudo cambiar el rol" });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleToggleSuperAdmin = (user: User) => {
+    if (user.id === currentUser?.id) {
+      Toast.show({
+        type: "error",
+        text1: "No puedes modificar tu propio superadmin",
+      });
+      return;
+    }
+    const action = user.is_super_admin
+      ? "quitar superadmin a"
+      : "promover a superadmin a";
+    Alert.alert(
+      user.is_super_admin ? "Quitar Superadmin" : "Promover a Superadmin",
+      `¿${action.charAt(0).toUpperCase() + action.slice(1)} ${user.name}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            try {
+              await usersService.toggleSuperAdmin(user.id);
+              Toast.show({
+                type: "success",
+                text1: user.is_super_admin
+                  ? "Superadmin removido"
+                  : "Superadmin asignado",
+                text2: user.name,
+              });
+              fetchUsers(true);
+            } catch {
+              Toast.show({ type: "error", text1: "No se pudo actualizar" });
             }
           },
         },
@@ -215,13 +293,57 @@ export default function UsersAdminScreen() {
                     item.role === "admin" && styles.roleTextAdmin,
                   ]}
                 >
-                  {item.role === "admin" ? "Admin" : "Estudiante"}
+                  {item.role === "admin"
+                    ? item.is_super_admin
+                      ? "⭐ Superadmin"
+                      : "Admin"
+                    : "Estudiante"}
                 </Text>
               </View>
+              {isSuperAdmin && item.role === "admin" && (
+                <Text style={styles.cubiculoLine} numberOfLines={1}>
+                  {"\u{1F3E2} "}
+                  {item.managed_cubiculo_id
+                    ? cubiculos.find((c) => c.id === item.managed_cubiculo_id)
+                        ?.name ?? "Cubículo asignado"
+                    : "Sin cubículo"}
+                </Text>
+              )}
             </View>
 
             {/* Actions */}
             <View style={styles.actions}>
+              {isSuperAdmin && item.role === "admin" && (
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => setAssignTarget(item)}
+                >
+                  <MaterialCommunityIcons
+                    name="office-building-cog-outline"
+                    size={20}
+                    color="#9333ea"
+                  />
+                </TouchableOpacity>
+              )}
+              {isSuperAdmin && item.role === "admin" && (
+                <TouchableOpacity
+                  style={[
+                    styles.actionBtn,
+                    item.is_super_admin && styles.superAdminBtn,
+                  ]}
+                  onPress={() => handleToggleSuperAdmin(item)}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      item.is_super_admin
+                        ? "shield-star"
+                        : "shield-star-outline"
+                    }
+                    size={20}
+                    color={item.is_super_admin ? "#fff" : "#f59e0b"}
+                  />
+                </TouchableOpacity>
+              )}
               {isSuperAdmin && (
                 <TouchableOpacity
                   style={styles.actionBtn}
@@ -252,6 +374,119 @@ export default function UsersAdminScreen() {
           </View>
         )}
       />
+
+      {/* Assign cubículo modal */}
+      <Modal
+        visible={!!assignTarget}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAssignTarget(null)}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.assignModal}>
+            <Text style={styles.assignModalTitle}>Asignar cubículo</Text>
+            {assignTarget && (
+              <Text style={styles.assignModalSub}>{assignTarget.name}</Text>
+            )}
+            <ScrollView style={{ maxHeight: 320 }}>
+              {/* Option: remove assignment */}
+              <TouchableOpacity
+                style={[
+                  styles.cubiculoOption,
+                  !assignTarget?.managed_cubiculo_id &&
+                    styles.cubiculoOptionActive,
+                ]}
+                onPress={() => handleAssignCubiculo(null)}
+                disabled={assigning}
+              >
+                <MaterialCommunityIcons
+                  name="office-building-remove-outline"
+                  size={20}
+                  color={
+                    !assignTarget?.managed_cubiculo_id ? PURPLE : "#6b7280"
+                  }
+                />
+                <Text
+                  style={[
+                    styles.cubiculoOptionText,
+                    !assignTarget?.managed_cubiculo_id &&
+                      styles.cubiculoOptionTextActive,
+                  ]}
+                >
+                  Sin cubículo
+                </Text>
+                {!assignTarget?.managed_cubiculo_id && (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={16}
+                    color={PURPLE}
+                  />
+                )}
+              </TouchableOpacity>
+
+              {cubiculos
+                .filter((c) => c.is_active)
+                .map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[
+                      styles.cubiculoOption,
+                      assignTarget?.managed_cubiculo_id === c.id &&
+                        styles.cubiculoOptionActive,
+                    ]}
+                    onPress={() => handleAssignCubiculo(c.id)}
+                    disabled={assigning}
+                  >
+                    <MaterialCommunityIcons
+                      name="office-building-outline"
+                      size={20}
+                      color={
+                        assignTarget?.managed_cubiculo_id === c.id
+                          ? PURPLE
+                          : "#6b7280"
+                      }
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.cubiculoOptionText,
+                          assignTarget?.managed_cubiculo_id === c.id &&
+                            styles.cubiculoOptionTextActive,
+                        ]}
+                      >
+                        {c.name}
+                      </Text>
+                      {c.location ? (
+                        <Text style={styles.cubiculoOptionSub}>
+                          {c.location}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {assignTarget?.managed_cubiculo_id === c.id && (
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={16}
+                        color={PURPLE}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+
+            {assigning && (
+              <ActivityIndicator color={PURPLE} style={{ marginTop: 12 }} />
+            )}
+
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setAssignTarget(null)}
+              disabled={assigning}
+            >
+              <Text style={styles.closeModalText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -329,4 +564,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deleteBtn: { backgroundColor: "#FFEBEE" },
+  superAdminBtn: { backgroundColor: "#f59e0b", borderColor: "#f59e0b" },
+  cubiculoLine: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  assignModal: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 36,
+  },
+  assignModalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1a1a2e",
+    marginBottom: 2,
+  },
+  assignModalSub: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 14,
+  },
+  cubiculoOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  cubiculoOptionActive: { backgroundColor: PURPLE_LIGHT },
+  cubiculoOptionText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  cubiculoOptionTextActive: { color: PURPLE },
+  cubiculoOptionSub: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
+  closeModalBtn: {
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#F0F0F0",
+    alignItems: "center",
+  },
+  closeModalText: { color: "#555", fontWeight: "700", fontSize: 14 },
 });

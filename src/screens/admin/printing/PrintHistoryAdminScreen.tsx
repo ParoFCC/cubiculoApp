@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ export default function PrintHistoryAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetch = useCallback(async (quiet = false) => {
+  const fetchHistory = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
       const data = await printingService.getAllHistory();
@@ -31,9 +32,11 @@ export default function PrintHistoryAdminScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [fetchHistory]),
+  );
 
   const totalPages = history.reduce((s, h) => s + h.pages, 0);
   const totalCost = history.reduce((s, h) => s + h.cost, 0);
@@ -56,7 +59,7 @@ export default function PrintHistoryAdminScreen() {
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            fetch(true);
+            fetchHistory(true);
           }}
           colors={[PURPLE]}
         />

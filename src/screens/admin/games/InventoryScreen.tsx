@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -61,9 +62,11 @@ export default function InventoryScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchGames();
-  }, [fetchGames]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGames();
+    }, [fetchGames]),
+  );
 
   const openModal = () => {
     setForm({

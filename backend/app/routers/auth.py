@@ -85,11 +85,11 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado")
 
-    # Admin restriction
-    if payload.role == UserRole.admin and payload.student_id != settings.SUPER_ADMIN_ID:
+    # Admin restriction — only existing super-admins may register as admin
+    if payload.role == UserRole.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo el superadmin puede registrarse como administrador",
+            detail="Los administradores son creados por el superadmin",
         )
 
     if len(payload.password) < 8:
@@ -218,8 +218,9 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Credenciales incorrectas",
         )
 
-    # Auto-promote super admin if their role was saved as student
-    if user.student_id == settings.SUPER_ADMIN_ID and user.role != UserRole.admin:
+    # Bootstrap: auto-promote original super-admin if flag not set yet
+    if user.student_id == settings.SUPER_ADMIN_ID and not user.is_super_admin:
+        user.is_super_admin = True
         user.role = UserRole.admin
         await db.commit()
 

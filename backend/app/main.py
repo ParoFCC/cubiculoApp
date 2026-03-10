@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import sqlalchemy as sa
 
 from app.core.config import settings
+from app.core.database import engine
 from app.routers import auth, users, games, printing, products, cubiculos, upload, attendance, search
 
 # Ensure all models are imported so SQLAlchemy can create their tables
@@ -10,7 +13,26 @@ import app.models.email_verification  # noqa: F401
 import app.models.cubiculo  # noqa: F401
 import app.models.attendance  # noqa: F401
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Add is_super_admin column if it doesn't exist yet
+    async with engine.begin() as conn:
+        await conn.execute(sa.text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+            "is_super_admin BOOLEAN NOT NULL DEFAULT FALSE"
+        ))
+        # Bootstrap: ensure the original super-admin keeps their flag
+        await conn.execute(sa.text(
+            "UPDATE users SET is_super_admin = TRUE "
+            f"WHERE student_id = '{settings.SUPER_ADMIN_ID}' "
+            "AND is_super_admin = FALSE"
+        ))
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="CubiculoApp API",
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,

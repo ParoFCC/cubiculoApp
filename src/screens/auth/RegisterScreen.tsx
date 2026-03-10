@@ -246,6 +246,13 @@ export default function RegisterScreen() {
           <Text style={styles.title}>Crear Cuenta</Text>
           <Text style={styles.subtitle}>Ingresa tus datos de la BUAP</Text>
 
+          {/* ── Section: Datos personales ── */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionLine} />
+            <Text style={styles.sectionLabel}>Datos personales</Text>
+            <View style={styles.sectionLine} />
+          </View>
+
           {/* ── Nombre(s) ── */}
           <Text style={styles.label}>Nombre(s)</Text>
           <TextInput
@@ -317,6 +324,13 @@ export default function RegisterScreen() {
           )}
 
           {/* ── Email (iniciales de apellidos + matrícula @alm.buap.mx) ── */}
+          {/* ── Section: Información de acceso ── */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionLine} />
+            <Text style={styles.sectionLabel}>Información de acceso</Text>
+            <View style={styles.sectionLine} />
+          </View>
+
           <View style={styles.labelRow}>
             <Text style={styles.label}>Correo institucional</Text>
             {emailIsAuto && !!autoEmail && (
@@ -488,6 +502,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#888",
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 16,
+    gap: 10,
+  },
+  sectionLine: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   row: { flexDirection: "row", gap: 10 },
   half: { flex: 1 },

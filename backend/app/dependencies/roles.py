@@ -4,7 +4,6 @@ from fastapi import Depends, HTTPException, status
 from app.models.user import User, UserRole
 from app.dependencies.auth import get_current_user
 from app.dependencies.cubiculo import get_cubiculo_id
-from app.core.config import settings
 
 
 async def require_admin(
@@ -21,8 +20,8 @@ async def require_admin(
 async def require_super_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """Only the super-admin (be202329205) can call this endpoint."""
-    if current_user.role != UserRole.admin or current_user.student_id != settings.SUPER_ADMIN_ID:
+    """Only super-admins (is_super_admin=True) can call this endpoint."""
+    if not current_user.is_super_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo el superadmin puede realizar esta acción",
@@ -35,7 +34,7 @@ async def require_cubiculo_admin(
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ) -> User:
     """Admin must be super-admin OR have this cubículo assigned."""
-    if current_user.student_id == settings.SUPER_ADMIN_ID:
+    if current_user.is_super_admin:
         return current_user
     if current_user.managed_cubiculo_id != cubiculo_id:
         raise HTTPException(

@@ -27,6 +27,8 @@ const PALETTES: Array<[string, string]> = [
   ["#E3F2FD", "#1565C0"],
 ];
 
+type AvailFilter = "all" | "available" | "unavailable";
+
 export default function GameCatalogScreen() {
   const navigation = useNavigation<any>();
   const [games, setGames] = useState<Game[]>([]);
@@ -34,6 +36,7 @@ export default function GameCatalogScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [showScanner, setShowScanner] = useState(false);
+  const [availFilter, setAvailFilter] = useState<AvailFilter>("all");
 
   const handleQRScan = (value: string) => {
     setShowScanner(false);
@@ -67,9 +70,16 @@ export default function GameCatalogScreen() {
     fetchGames();
   }, [fetchGames]);
 
-  const filtered = games.filter(
-    (g) => !search || g.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = games.filter((g) => {
+    const matchSearch =
+      !search || g.name.toLowerCase().includes(search.toLowerCase());
+    const matchAvail =
+      availFilter === "all" ||
+      (availFilter === "available"
+        ? g.quantity_avail > 0
+        : g.quantity_avail === 0);
+    return matchSearch && matchAvail;
+  });
 
   if (loading) {
     return (
@@ -117,6 +127,32 @@ export default function GameCatalogScreen() {
         onScan={handleQRScan}
         onClose={() => setShowScanner(false)}
       />
+
+      {/* Availability filter chips */}
+      <View style={styles.chipRow}>
+        {(
+          [
+            { key: "all" as AvailFilter, label: "Todos" },
+            { key: "available" as AvailFilter, label: "Disponibles" },
+            { key: "unavailable" as AvailFilter, label: "Sin stock" },
+          ] as const
+        ).map((chip) => (
+          <TouchableOpacity
+            key={chip.key}
+            style={[styles.chip, availFilter === chip.key && styles.chipActive]}
+            onPress={() => setAvailFilter(chip.key)}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                availFilter === chip.key && styles.chipTextActive,
+              ]}
+            >
+              {chip.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <FlatList
         data={filtered}
@@ -227,6 +263,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  chipRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#F0EFF5",
+  },
+  chipActive: { backgroundColor: PURPLE },
+  chipText: { fontSize: 13, fontWeight: "600", color: "#555" },
+  chipTextActive: { color: "#fff" },
   count: {
     fontSize: 12,
     color: "#9ca3af",

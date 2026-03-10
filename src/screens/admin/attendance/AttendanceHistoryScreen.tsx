@@ -14,7 +14,6 @@ import { es } from "date-fns/locale";
 import Toast from "react-native-toast-message";
 import { attendanceService } from "../../../services/attendanceService";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { SUPER_ADMIN_ID } from "../../../types/auth.types";
 import { AttendanceRecord } from "../../../types/attendance.types";
 
 const PURPLE = "#5C35D9";
@@ -45,7 +44,7 @@ function groupByDay(records: AttendanceRecord[]): GroupedDay[] {
 
 export default function AttendanceHistoryScreen() {
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.student_id === SUPER_ADMIN_ID;
+  const isSuperAdmin = user?.is_super_admin === true;
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);

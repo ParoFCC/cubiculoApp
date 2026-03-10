@@ -52,11 +52,16 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.card}>
-        {/* Logo / Title */}
-        <View style={styles.logoWrap}>
-          <MaterialCommunityIcons name="domain" size={40} color={PURPLE} />
+        {/* Branded header strip */}
+        <View style={styles.headerStrip}>
+          <View style={styles.headerIconWrap}>
+            <MaterialCommunityIcons name="domain" size={32} color="#fff" />
+          </View>
+          <Text style={styles.headerAppName}>CubiculoApp</Text>
+          <Text style={styles.headerInst}>BUAP · Cubículo Estudiantil</Text>
         </View>
-        <Text style={styles.title}>Cubículo Estudiantil</Text>
+
+        <Text style={styles.title}>Bienvenido de vuelta</Text>
         <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
         {/* Email */}
@@ -159,12 +164,38 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 28,
+    borderRadius: 20,
+    overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  headerStrip: {
+    backgroundColor: PURPLE,
+    paddingVertical: 24,
+    paddingHorizontal: 28,
+    alignItems: "center",
+  },
+  headerIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  headerAppName: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  headerInst: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
+    marginTop: 3,
   },
   logo: { textAlign: "center", fontSize: 48, marginBottom: 8 },
   logoWrap: {
@@ -179,18 +210,27 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: "#1a1a2e",
     marginBottom: 4,
+    marginTop: 24,
+    paddingHorizontal: 28,
   },
   subtitle: {
     textAlign: "center",
     fontSize: 14,
     color: "#888",
     marginBottom: 24,
+    paddingHorizontal: 28,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#444", marginBottom: 4 },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#444",
+    marginBottom: 4,
+    paddingHorizontal: 28,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -201,6 +241,7 @@ const styles = StyleSheet.create({
     color: "#222",
     backgroundColor: "#fafafa",
     marginBottom: 16,
+    marginHorizontal: 28,
   },
   btn: {
     backgroundColor: PURPLE,
@@ -210,10 +251,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
+    marginHorizontal: 28,
+    marginBottom: 4,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  registerLink: { marginTop: 18, alignItems: "center" },
+  registerLink: { marginTop: 14, marginBottom: 24, alignItems: "center" },
   registerLinkText: { fontSize: 14, color: "#888" },
   passwordRow: {
     flexDirection: "row",
@@ -223,6 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#fafafa",
     marginBottom: 4,
+    marginHorizontal: 28,
   },
   passwordInput: {
     flex: 1,
@@ -232,6 +276,11 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   eyeBtn: { paddingHorizontal: 12 },
-  forgotLink: { alignSelf: "flex-end", marginBottom: 16, marginTop: 6 },
+  forgotLink: {
+    alignSelf: "flex-end",
+    marginBottom: 16,
+    marginTop: 6,
+    marginHorizontal: 28,
+  },
   forgotLinkText: { fontSize: 13, color: PURPLE, fontWeight: "600" },
 });

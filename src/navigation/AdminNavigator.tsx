@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCubiculoStore } from "../store/useCubiculoStore";
-import { SUPER_ADMIN_ID } from "../types/auth.types";
 
 // Admin — Dashboard
 import DashboardScreen from "../screens/admin/dashboard/DashboardScreen";
@@ -251,7 +250,7 @@ function AttendanceAdminStack() {
 export default function AdminNavigator() {
   const cubiculo = useCubiculoStore((s) => s.selectedCubiculo);
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.student_id === SUPER_ADMIN_ID;
+  const isSuperAdmin = user?.is_super_admin === true;
 
   const gamesOn = cubiculo?.games_enabled !== false;
   const printOn = cubiculo?.printing_enabled !== false;

@@ -24,7 +24,7 @@ import {
 } from "../../../services/searchService";
 import { useAuthStore } from "../../../store/useAuthStore";
 import { useCubiculoStore } from "../../../store/useCubiculoStore";
-import { SUPER_ADMIN_ID } from "../../../types/auth.types";
+// SUPER_ADMIN_ID replaced by user.is_super_admin
 import { GameLoan } from "../../../types/games.types";
 import { CashRegister, Product, Sale } from "../../../types/products.types";
 import { PrintHistoryItem } from "../../../types/printing.types";
@@ -173,17 +173,25 @@ function StatusChip({
 
 function MetricBox({ card }: { card: MetricCard }) {
   return (
-    <View style={[styles.metricCard, { backgroundColor: card.soft }]}>
+    <View
+      style={[
+        styles.metricCard,
+        { backgroundColor: card.soft, borderLeftColor: card.accent },
+      ]}
+    >
       <View style={[styles.metricIcon, { backgroundColor: card.accent }]}>
         <MaterialCommunityIcons
           name={card.icon as any}
-          size={18}
+          size={16}
           color="#fff"
         />
       </View>
-      <Text style={styles.metricTitle}>{card.title}</Text>
-      <Text style={styles.metricValue}>{card.value}</Text>
-      <Text style={styles.metricHelper}>{card.helper}</Text>
+      <View style={styles.metricInfo}>
+        <Text style={styles.metricTitle}>{card.title}</Text>
+        <Text style={[styles.metricValue, { color: card.accent }]}>
+          {card.value}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -244,7 +252,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
   const cubiculo = useCubiculoStore((s) => s.selectedCubiculo);
-  const isSuperAdmin = user?.student_id === SUPER_ADMIN_ID;
+  const isSuperAdmin = user?.is_super_admin === true;
 
   const gamesOn = cubiculo?.games_enabled !== false;
   const printOn = cubiculo?.printing_enabled !== false;
@@ -423,22 +431,21 @@ export default function DashboardScreen() {
   ];
 
   const quickCards: QuickCard[] = [
+    gamesOn && {
+      screen: "RegisterLoan",
+      title: "Préstamo",
+      icon: "hand-pointing-right",
+      bg: PURPLE,
+      subtitle: "Registrar salida",
+    },
     gamesOn &&
-      (activeLoans > 0
-        ? {
-            screen: "RegisterReturn",
-            title: "Devolución",
-            icon: "hand-okay",
-            bg: "#D97706",
-            subtitle: `${activeLoans} por recibir`,
-          }
-        : {
-            screen: "RegisterLoan",
-            title: "Préstamo",
-            icon: "hand-pointing-right",
-            bg: PURPLE,
-            subtitle: "Registrar salida",
-          }),
+      activeLoans > 0 && {
+        screen: "RegisterReturn",
+        title: "Devolución",
+        icon: "hand-okay",
+        bg: "#D97706",
+        subtitle: `${activeLoans} por recibir`,
+      },
     printOn && {
       screen: "RegisterPrint",
       title: "Impresión",
@@ -462,14 +469,6 @@ export default function DashboardScreen() {
             bg: "#BE123C",
             subtitle: "Ventas bloqueadas",
           }),
-    gamesOn &&
-      activeLoans > 0 && {
-        screen: "LoanHistory",
-        title: "Historial",
-        icon: "history",
-        bg: "#475569",
-        subtitle: "Ver préstamos activos",
-      },
   ].filter(Boolean) as QuickCard[];
 
   const inventoryCards: NavCard[] = [
@@ -698,24 +697,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Resumen en tiempo real</Text>
-        {loading ? (
-          <View style={styles.metricsLoading}>
-            <ActivityIndicator color={PURPLE} />
-            <Text style={styles.metricsLoadingText}>
-              Actualizando métricas...
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.metricsGrid}>
-            {metricCards.map((card) => (
-              <MetricBox key={card.key} card={card} />
-            ))}
-          </View>
-        )}
-      </View>
-
       {criticalItems.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Pendientes críticos</Text>
@@ -768,6 +749,64 @@ export default function DashboardScreen() {
             />
           )}
         </View>
+      </View>
+
+      {/* Quick actions grid */}
+      {filteredQuickCards.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Acciones rápidas</Text>
+          <View style={styles.quickGrid}>
+            {filteredQuickCards.map((card) => (
+              <TouchableOpacity
+                key={card.screen}
+                style={[
+                  styles.quickCard,
+                  { backgroundColor: card.bg, width: CARD_W },
+                ]}
+                onPress={() => navigation.navigate(card.screen)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.quickIconCircle}>
+                  <MaterialCommunityIcons
+                    name={card.icon as any}
+                    size={26}
+                    color="#fff"
+                  />
+                </View>
+                <View style={styles.quickTextBlock}>
+                  <Text style={styles.quickTitle}>{card.title}</Text>
+                  <Text style={styles.quickSubtitle}>{card.subtitle}</Text>
+                </View>
+                <View style={styles.quickFooter}>
+                  <Text style={styles.quickCta}>Abrir</Text>
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={16}
+                    color="rgba(255,255,255,0.85)"
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Resumen en tiempo real</Text>
+        {loading ? (
+          <View style={styles.metricsLoading}>
+            <ActivityIndicator color={PURPLE} />
+            <Text style={styles.metricsLoadingText}>
+              Actualizando métricas...
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.metricsGrid}>
+            {metricCards.map((card) => (
+              <MetricBox key={card.key} card={card} />
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -891,46 +930,6 @@ export default function DashboardScreen() {
           )}
         </View>
       </View>
-
-      {/* Quick actions grid */}
-      {quickCards.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Acciones rápidas</Text>
-          <View style={styles.quickGrid}>
-            {filteredQuickCards.map((card) => (
-              <TouchableOpacity
-                key={card.screen}
-                style={[
-                  styles.quickCard,
-                  { backgroundColor: card.bg, width: CARD_W },
-                ]}
-                onPress={() => navigation.navigate(card.screen)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.quickIconCircle}>
-                  <MaterialCommunityIcons
-                    name={card.icon as any}
-                    size={26}
-                    color="#fff"
-                  />
-                </View>
-                <View style={styles.quickTextBlock}>
-                  <Text style={styles.quickTitle}>{card.title}</Text>
-                  <Text style={styles.quickSubtitle}>{card.subtitle}</Text>
-                </View>
-                <View style={styles.quickFooter}>
-                  <Text style={styles.quickCta}>Abrir</Text>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={16}
-                    color="rgba(255,255,255,0.85)"
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
 
       <SectionList
         title="Inventario"
@@ -1110,34 +1109,31 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: CARD_W,
-    borderRadius: 16,
-    padding: 14,
-    minHeight: 132,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderLeftWidth: 3,
   },
   metricIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    flexShrink: 0,
   },
+  metricInfo: { flex: 1 },
   metricTitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6b7280",
-    fontWeight: "700",
+    fontWeight: "600",
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "800",
-    color: "#111827",
-    marginTop: 8,
-  },
-  metricHelper: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 6,
-    lineHeight: 17,
+    marginTop: 1,
   },
   searchCard: {
     backgroundColor: "#fff",

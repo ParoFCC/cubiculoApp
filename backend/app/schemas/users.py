@@ -59,15 +59,12 @@ class UserOut(BaseModel):
     student_id: str | None
     period: str | None
     is_active: bool
+    is_super_admin: bool = False
     managed_cubiculo_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
-
-class UserList(BaseModel):
-    items: list[UserOut]
-    total: int
 
 class UserList(BaseModel):
     items: list[UserOut]

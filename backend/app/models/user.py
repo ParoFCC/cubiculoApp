@@ -29,6 +29,7 @@ class User(Base):
     student_id: Mapped[str | None] = mapped_column(String(20))
     period: Mapped[str | None] = mapped_column(String(10))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     managed_cubiculo_id: Mapped[uuid.UUID | None] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("cubiculos.id", ondelete="SET NULL"),

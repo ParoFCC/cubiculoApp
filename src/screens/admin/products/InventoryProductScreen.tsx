@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -9,7 +10,6 @@ import {
   TextInput,
   Modal,
   RefreshControl,
-  ScrollView,
   Alert,
   Image,
 } from "react-native";
@@ -52,9 +52,11 @@ export default function InventoryProductScreen({ navigation }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProducts();
+    }, [fetchProducts]),
+  );
 
   const handleDelete = (item: Product) => {
     Alert.alert(
@@ -190,6 +192,10 @@ export default function InventoryProductScreen({ navigation }: Props) {
         return "🧃";
       case "comida":
         return "🍫";
+      case "papeleria":
+        return "📎";
+      case "snack":
+        return "🍿";
       default:
         return "📦";
     }
@@ -293,6 +299,16 @@ export default function InventoryProductScreen({ navigation }: Props) {
               </View>
               {!item.is_active && <Text style={styles.inactive}>Inactivo</Text>}
             </View>
+            <TouchableOpacity
+              style={styles.trashBtn}
+              onPress={() => handleDelete(item)}
+            >
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={18}
+                color="#E53935"
+              />
+            </TouchableOpacity>
           </View>
         )}
       />
@@ -327,7 +343,7 @@ export default function InventoryProductScreen({ navigation }: Props) {
             />
             <Text style={styles.catLabel}>Categoría:</Text>
             <View style={styles.catRow}>
-              {["bebida", "comida", "otro"].map((cat) => (
+              {["bebida", "comida", "papeleria", "snack", "otro"].map((cat) => (
                 <TouchableOpacity
                   key={cat}
                   style={[
@@ -479,12 +495,6 @@ const styles = StyleSheet.create({
   lowStock: { backgroundColor: "#FFEBEE" },
   stockText: { fontSize: 12, fontWeight: "600", color: "#444" },
   inactive: { fontSize: 11, color: "#999", marginTop: 4 },
-  trashBtn: {
-    marginLeft: 10,
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: "#FEF2F2",
-  },
   trashBtn: {
     marginLeft: 10,
     padding: 6,

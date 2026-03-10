@@ -27,4 +27,7 @@ export const usersService = {
     api
       .get<User>("/users/lookup", { params: { student_id: studentId } })
       .then((r) => r.data),
+
+  toggleSuperAdmin: (userId: string): Promise<User> =>
+    api.patch<User>(`/users/${userId}/super-admin`).then((r) => r.data),
 };

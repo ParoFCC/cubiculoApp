@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.config import settings
 from app.models.user import User, UserRole
 from app.schemas.users import UserCreate, UserUpdate, UserOut, UserList, UserCubiculoAssign
 from app.dependencies.auth import get_current_user
@@ -49,7 +48,7 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    if payload.role == UserRole.admin and current_user.student_id != settings.SUPER_ADMIN_ID:
+    if payload.role == UserRole.admin and not current_user.is_super_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo el superadmin puede crear otros administradores",
@@ -65,7 +64,7 @@ async def update_user(
     current_user: User = Depends(require_admin),
 ):
     # Role changes are super-admin only
-    if payload.role is not None and current_user.student_id != settings.SUPER_ADMIN_ID:
+    if payload.role is not None and not current_user.is_super_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo el superadmin puede cambiar roles",
@@ -93,6 +92,30 @@ async def assign_cubiculo_to_admin(
             detail="El usuario debe tener rol de administrador",
         )
     return await svc.assign_cubiculo(db, user_id, payload.cubiculo_id)
+
+
+@router.patch("/{user_id}/super-admin", response_model=UserOut)
+async def toggle_super_admin(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    """Super-admin promotes or demotes another admin to/from super-admin."""
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes modificar tu propio rol de superadmin",
+        )
+    target = await svc.get_by_id(db, user_id)
+    if target.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo los administradores pueden ser superadmin",
+        )
+    target.is_super_admin = not target.is_super_admin
+    await db.commit()
+    await db.refresh(target)
+    return target
 
 
 @router.delete("/{user_id}", status_code=204,

@@ -10,7 +10,7 @@ const BASE_URL =
   process.env.API_URL ??
   (typeof __DEV__ !== "undefined" && __DEV__
     ? "http://10.0.2.2:8000"
-    : "http://localhost:8000");
+    : "https://cubiculoapp-production.up.railway.app");
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,

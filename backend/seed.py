@@ -49,11 +49,11 @@ async def seed():
         user_rows = [
             # (student_id, name, email, role, period, managed_cubiculo)
             ("be202329205",  "Super Admin",         "admin@psicologopuebla.com",      UserRole.admin,   None,     cA),
-            ("be202300001",  "María García",        "maria@alm.buap.mx",              UserRole.student, "2024-1", None),
-            ("be202300002",  "Carlos López",        "carlos@alm.buap.mx",             UserRole.student, "2024-1", None),
-            ("be202300003",  "Ana Martínez",        "ana@alm.buap.mx",                UserRole.student, "2024-2", None),
-            ("be202300004",  "Luis Hernández",      "luis@alm.buap.mx",               UserRole.student, "2024-2", None),
-            ("be202300005",  "Sofía Torres",        "sofia@alm.buap.mx",              UserRole.student, "2023-2", None),
+            ("202300001",  "María García",        "202300001@alm.buap.mx",              UserRole.student, "2023-1", None),
+            ("202300002",  "Carlos López",        "202300002@alm.buap.mx",             UserRole.student, "2023-1", None),
+            ("202300003",  "Ana Martínez",        "202300003@alm.buap.mx",                UserRole.student, "2023-2", None),
+            ("202300004",  "Luis Hernández",      "202300004@alm.buap.mx",               UserRole.student, "2023-2", None),
+            ("202300005",  "Sofía Torres",        "202300005@alm.buap.mx",              UserRole.student, "2023-2", None),
             ("admin002",     "Adriana (Admin B)",   "adriana@psicologopuebla.com",    UserRole.admin,   None,     cB),
         ]
         users: dict[str, User] = {}
@@ -158,11 +158,11 @@ async def seed():
         print(f"{'─'*50}")
         print(f"  Super Admin:  be202329205 / admin@psicologopuebla.com")
         print(f"  Admin B:      admin002    / adriana@psicologopuebla.com")
-        print(f"  Estudiante 1: be202300001 / maria@alm.buap.mx")
-        print(f"  Estudiante 2: be202300002 / carlos@alm.buap.mx")
-        print(f"  Estudiante 3: be202300003 / ana@alm.buap.mx")
-        print(f"  Estudiante 4: be202300004 / luis@alm.buap.mx")
-        print(f"  Estudiante 5: be202300005 / sofia@alm.buap.mx")
+        print(f"  Estudiante 1: 202300001 / 202300001@alm.buap.mx")
+        print(f"  Estudiante 2: 202300002 / 202300002@alm.buap.mx")
+        print(f"  Estudiante 3: 202300003 / 202300003@alm.buap.mx")
+        print(f"  Estudiante 4: 202300004 / 202300004@alm.buap.mx")
+        print(f"  Estudiante 5: 202300005 / 202300005@alm.buap.mx")
         print(f"{'─'*50}")
 
 

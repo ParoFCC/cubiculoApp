@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   student_id?: string;
   period?: string;
+  is_active: boolean;
   is_super_admin: boolean;
   managed_cubiculo_id?: string | null;
 }

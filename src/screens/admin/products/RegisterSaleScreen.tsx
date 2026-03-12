@@ -317,13 +317,16 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                 style={styles.studentInput}
                 value={studentId}
                 onChangeText={(v) => {
-                  setStudentId(v);
+                  const digits = v.replace(/\D/g, "").slice(0, 9);
+                  setStudentId(digits);
                   setStudentInfo(null);
                   setHasLookupResult(false);
                 }}
                 onBlur={() => lookupStudent(studentId)}
                 placeholder="ID del estudiante (opcional)"
                 placeholderTextColor="#aaa"
+                keyboardType="number-pad"
+                maxLength={9}
                 autoCapitalize="none"
               />
               {lookingUp && (
@@ -332,7 +335,7 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                   <Text style={styles.studentChipText}>Buscando...</Text>
                 </View>
               )}
-              {!lookingUp && studentInfo && (
+              {!lookingUp && studentInfo && studentInfo.is_active && (
                 <View style={[styles.studentChip, styles.studentChipFound]}>
                   <MaterialCommunityIcons
                     name="account-check"
@@ -340,6 +343,30 @@ export default function RegisterSaleScreen({ navigation }: Props) {
                     color="#22C55E"
                   />
                   <Text style={styles.studentChipText}>{studentInfo.name}</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setStudentId("");
+                      setStudentInfo(null);
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={16}
+                      color="#9ca3af"
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {!lookingUp && studentInfo && !studentInfo.is_active && (
+                <View style={[styles.studentChip, styles.studentChipInactive]}>
+                  <MaterialCommunityIcons
+                    name="account-cancel-outline"
+                    size={16}
+                    color="#DC2626"
+                  />
+                  <Text style={[styles.studentChipText, { color: "#DC2626" }]}>
+                    {studentInfo.name} (desactivado)
+                  </Text>
                   <TouchableOpacity
                     onPress={() => {
                       setStudentId("");
@@ -754,6 +781,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0fdf4",
     borderWidth: 1,
     borderColor: "#bbf7d0",
+  },
+  studentChipInactive: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
   studentChipGuest: {
     backgroundColor: "#FFF7ED",

@@ -26,7 +26,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole), nullable=False, default=UserRole.student
     )
-    student_id: Mapped[str | None] = mapped_column(String(20))
+    student_id: Mapped[str | None] = mapped_column(String(20), unique=True, index=True)
     period: Mapped[str | None] = mapped_column(String(10))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

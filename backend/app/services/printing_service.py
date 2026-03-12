@@ -18,7 +18,8 @@ def normalize_student_identifier(student_identifier: str) -> str:
 def resolve_period(student: User | None, student_identifier: str) -> str:
     if student and student.period:
         return student.period
-    match = re.match(r"^[a-z]{2}(\d{4})", student_identifier)
+    # Matricula format: 4-digit year followed by 5 digits (e.g. 202612345)
+    match = re.match(r"^(\d{4})\d{5}$", student_identifier)
     if match:
         return f"{match.group(1)}-1"
     return "sin-periodo"

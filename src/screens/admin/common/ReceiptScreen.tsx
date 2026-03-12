@@ -6,11 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   Share,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { generatePDF } from "react-native-html-to-pdf";
+import Toast from "react-native-toast-message";
 
 export type ReceiptParams =
   | {
@@ -109,12 +113,70 @@ function makeShareText(params: ReceiptParams, dateStr: string): string {
   )}${payLine}\nFecha: ${dateStr}`;
 }
 
+function makePDFHtml(params: ReceiptParams, dateStr: string): string {
+  const who = params.studentName
+    ? `${params.studentName} (${params.studentId})`
+    : params.studentId ?? "Sin matrícula";
+  const accent =
+    params.type === "loan"
+      ? "#5C35D9"
+      : params.type === "print"
+      ? "#0284c7"
+      : "#059669";
+  const titleMap = { loan: "Préstamo", print: "Impresión", sale: "Venta" };
+
+  let rows = "";
+  if (params.type === "loan") {
+    const due = params.dueAt
+      ? format(new Date(params.dueAt), "d MMM yyyy HH:mm", { locale: es })
+      : "Sin fecha límite";
+    rows = `<tr><td>Juego</td><td>${
+      params.gameName
+    }</td></tr><tr><td>Piezas</td><td>${
+      params.piecesComplete ? "Completo" : "Incompleto"
+    }</td></tr><tr><td>Devolver antes de</td><td>${due}</td></tr>`;
+  } else if (params.type === "print") {
+    rows = `<tr><td>Páginas</td><td>${
+      params.pages
+    }</td></tr><tr><td>Tipo</td><td>${
+      params.printType === "free" ? "Gratuita" : "Pagada"
+    }</td></tr><tr><td>Costo</td><td>${
+      params.printType === "free" ? "Sin costo" : `$${params.cost.toFixed(2)}`
+    }</td></tr>`;
+  } else {
+    const itemRows = params.items
+      .map(
+        (i) =>
+          `<tr><td>${i.name} × ${
+            i.quantity
+          }</td><td style="text-align:right">$${(i.price * i.quantity).toFixed(
+            2,
+          )}</td></tr>`,
+      )
+      .join("");
+    const commission =
+      params.paymentMethod === "card" ? params.cardCommission ?? 0 : 0;
+    const total = params.total + commission;
+    rows = `${itemRows}<tr style="border-top:2px solid #e5e7eb"><td><b>Total</b></td><td style="text-align:right"><b>$${total.toFixed(
+      2,
+    )}</b></td></tr>`;
+  }
+  const whoRow =
+    who !== "Sin matrícula"
+      ? `<tr><td>Estudiante</td><td>${who}</td></tr>`
+      : "";
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:32px;color:#1a1a2e;max-width:480px;margin:0 auto}h1{color:${accent};border-bottom:2px solid ${accent};padding-bottom:8px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}td{padding:10px 8px;border-bottom:1px solid #f0f0f0}td:first-child{color:#666;width:45%}.footer{margin-top:24px;font-size:11px;color:#9ca3af;text-align:center}</style></head><body><h1>Recibo de ${
+    titleMap[params.type]
+  }</h1><p style="color:#888;font-size:13px">${dateStr}</p><table>${whoRow}${rows}</table><p class="footer">CubiculoApp · BUAP</p></body></html>`;
+}
+
 export default function ReceiptScreen() {
   const navigation = useNavigation<any>();
   const params = useRoute<any>().params as ReceiptParams;
   const cfg = CONFIGS[params.type];
   const now = new Date();
   const dateStr = format(now, "d 'de' MMMM yyyy, HH:mm", { locale: es });
+  const [exporting, setExporting] = React.useState(false);
 
   const handleShare = async () => {
     await Share.share({ message: makeShareText(params, dateStr) });
@@ -122,6 +184,41 @@ export default function ReceiptScreen() {
 
   const handleDone = () => {
     navigation.navigate("Dashboard");
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const typeKey =
+        params.type === "loan"
+          ? "prestamo"
+          : params.type === "print"
+          ? "impresion"
+          : "venta";
+      const file = await generatePDF({
+        html: makePDFHtml(params, dateStr),
+        fileName: `recibo_${typeKey}_${now
+          .toISOString()
+          .replace(/[:.]/g, "-")
+          .slice(0, 19)}`,
+        directory: "Documents",
+      });
+      if (file.filePath) {
+        await Share.share({
+          title: "Recibo",
+          url:
+            Platform.OS === "ios" ? file.filePath : `file://${file.filePath}`,
+        });
+      }
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo generar el PDF.",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -275,18 +372,39 @@ export default function ReceiptScreen() {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.shareBtn}
-          onPress={handleShare}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons
-            name="share-variant-outline"
-            size={18}
-            color={PURPLE}
-          />
-          <Text style={styles.shareBtnText}>Compartir recibo</Text>
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.shareBtn}
+            onPress={handleShare}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="share-variant-outline"
+              size={18}
+              color={PURPLE}
+            />
+            <Text style={styles.shareBtnText}>Compartir</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.pdfBtn, exporting && styles.disabled]}
+            onPress={handleExportPDF}
+            activeOpacity={0.8}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={PURPLE} />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="file-pdf-box"
+                  size={18}
+                  color={PURPLE}
+                />
+                <Text style={styles.shareBtnText}>PDF</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           style={[styles.doneBtn, { backgroundColor: cfg.accentColor }]}
           onPress={handleDone}
@@ -413,6 +531,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F7FF",
   },
   shareBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#EEE9FF",
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  pdfBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -422,6 +551,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   shareBtnText: { color: PURPLE, fontWeight: "700", fontSize: 15 },
+  actionsRow: { flexDirection: "row", gap: 10 },
+  disabled: { opacity: 0.6 },
   doneBtn: {
     borderRadius: 14,
     paddingVertical: 16,

@@ -14,7 +14,11 @@ import {
   Image,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import DocumentPicker from "react-native-document-picker";
+import {
+  launchCamera,
+  launchImageLibrary,
+  type ImagePickerResponse,
+} from "react-native-image-picker";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { productsService } from "../../../services/productsService";
 import { uploadService } from "../../../services/uploadService";
@@ -102,27 +106,39 @@ export default function InventoryProductScreen({ navigation }: Props) {
   };
 
   const handlePickImage = async () => {
+    Alert.alert("Imagen del producto", "\u00bfCómo deseas agregar la imagen?", [
+      { text: "Cámara", onPress: () => pickImage("camera") },
+      { text: "Galería", onPress: () => pickImage("library") },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  };
+
+  const pickImage = async (source: "camera" | "library") => {
+    const options = { mediaType: "photo" as const, quality: 0.8 as const };
+    let response: ImagePickerResponse;
+    if (source === "camera") {
+      response = await launchCamera(options);
+    } else {
+      response = await launchImageLibrary(options);
+    }
+    if (response.didCancel || response.errorCode) return;
+    const asset = response.assets?.[0];
+    if (!asset?.uri) return;
+    setUploading(true);
     try {
-      const result = await DocumentPicker.pickSingle({
-        type: [DocumentPicker.types.images],
-        copyTo: "cachesDirectory",
-      });
-      setUploading(true);
       const url = await uploadService.uploadFile(
-        result.fileCopyUri ?? result.uri,
-        result.name ?? "product.jpg",
-        result.type ?? "image/jpeg",
+        asset.uri,
+        asset.fileName ?? "product.jpg",
+        asset.type ?? "image/jpeg",
       );
       setForm((f) => ({ ...f, image_url: url }));
       Toast.show({ type: "success", text1: "Imagen subida" });
     } catch (err: any) {
-      if (!DocumentPicker.isCancel(err)) {
-        Toast.show({
-          type: "error",
-          text1: "Error al subir imagen",
-          text2: extractApiErrorMessage(err, "No se pudo subir la imagen."),
-        });
-      }
+      Toast.show({
+        type: "error",
+        text1: "Error al subir imagen",
+        text2: extractApiErrorMessage(err, "No se pudo subir la imagen."),
+      });
     } finally {
       setUploading(false);
     }

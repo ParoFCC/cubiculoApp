@@ -18,6 +18,8 @@ import { usersService } from "../../../services/usersService";
 import { User } from "../../../types/auth.types";
 import { extractApiErrorMessage } from "../../../utils/apiError";
 import { PrintBalance } from "../../../types/printing.types";
+import QRScannerModal from "../../../components/QRScannerModal";
+import IDScannerModal from "../../../components/IDScannerModal";
 
 export default function RegisterPrintScreen() {
   const navigation = useNavigation<any>();
@@ -32,6 +34,8 @@ export default function RegisterPrintScreen() {
   const [hasLookupResult, setHasLookupResult] = useState(false);
   const [balance, setBalance] = useState<PrintBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [showIDScanner, setShowIDScanner] = useState(false);
 
   const lookupStudent = async (id: string) => {
     const normalizedId = id.trim().toLowerCase();
@@ -68,6 +72,19 @@ export default function RegisterPrintScreen() {
     setStudentInfo(null);
     setBalance(null);
     setHasLookupResult(false);
+  };
+
+  const handleQRScan = (value: string) => {
+    setShowQR(false);
+    const id = value.trim();
+    setStudentId(id);
+    lookupStudent(id);
+  };
+
+  const handleIDScan = (matricula: string) => {
+    setShowIDScanner(false);
+    setStudentId(matricula);
+    lookupStudent(matricula);
   };
 
   useEffect(() => {
@@ -139,23 +156,45 @@ export default function RegisterPrintScreen() {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.label}>ID del Estudiante</Text>
-        <TextInput
-          style={styles.input}
-          value={studentId}
-          onChangeText={handleStudentIdChange}
-          onBlur={() => lookupStudent(studentId)}
-          placeholder="Ej: be202300001"
-          placeholderTextColor="#aaa"
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!loading}
-        />
+        <View style={styles.inputRow}>
+          <TextInput
+            style={[styles.input, styles.inputFlex]}
+            value={studentId}
+            onChangeText={(v) =>
+              handleStudentIdChange(v.replace(/\D/g, "").slice(0, 9))
+            }
+            onBlur={() => lookupStudent(studentId)}
+            placeholder="Ej: 202312345"
+            placeholderTextColor="#aaa"
+            keyboardType="number-pad"
+            maxLength={9}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+          />
+          <TouchableOpacity
+            style={styles.qrBtn}
+            onPress={() => setShowQR(true)}
+          >
+            <MaterialCommunityIcons name="qrcode-scan" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.qrBtn, { backgroundColor: "#059669" }]}
+            onPress={() => setShowIDScanner(true)}
+          >
+            <MaterialCommunityIcons
+              name="card-account-details-outline"
+              size={22}
+              color="#fff"
+            />
+          </TouchableOpacity>
+        </View>
         {lookingUp && (
           <View style={styles.studentCard}>
             <Text style={styles.studentCardText}>Buscando...</Text>
           </View>
         )}
-        {!lookingUp && studentInfo && (
+        {!lookingUp && studentInfo && studentInfo.is_active && (
           <View style={[styles.studentCard, styles.studentCardFound]}>
             <MaterialCommunityIcons
               name="account-check"
@@ -165,6 +204,21 @@ export default function RegisterPrintScreen() {
             <View>
               <Text style={styles.studentCardName}>{studentInfo.name}</Text>
               <Text style={styles.studentCardSub}>{studentInfo.email}</Text>
+            </View>
+          </View>
+        )}
+        {!lookingUp && studentInfo && !studentInfo.is_active && (
+          <View style={[styles.studentCard, styles.studentCardInactive]}>
+            <MaterialCommunityIcons
+              name="account-cancel-outline"
+              size={20}
+              color="#DC2626"
+            />
+            <View>
+              <Text style={styles.studentCardName}>{studentInfo.name}</Text>
+              <Text style={styles.studentCardSub}>
+                Cuenta desactivada — no se puede registrar impresión
+              </Text>
             </View>
           </View>
         )}
@@ -292,9 +346,12 @@ export default function RegisterPrintScreen() {
         )}
 
         <TouchableOpacity
-          style={[styles.btn, loading && styles.btnDisabled]}
+          style={[
+            styles.btn,
+            (loading || studentInfo?.is_active === false) && styles.btnDisabled,
+          ]}
           onPress={handleRegister}
-          disabled={loading}
+          disabled={loading || studentInfo?.is_active === false}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -303,6 +360,16 @@ export default function RegisterPrintScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      <QRScannerModal
+        visible={showQR}
+        onScan={handleQRScan}
+        onClose={() => setShowQR(false)}
+      />
+      <IDScannerModal
+        visible={showIDScanner}
+        onScan={handleIDScan}
+        onClose={() => setShowIDScanner(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -322,6 +389,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   studentCardFound: { backgroundColor: "#F0FDF4" },
+  studentCardInactive: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
   studentCardGuest: { backgroundColor: "#FFF7ED" },
   studentCardText: { fontSize: 13, color: "#888" },
   studentCardName: { fontSize: 14, fontWeight: "700", color: "#1a1a2e" },
@@ -399,6 +471,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: "#fff",
     color: "#222",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  inputFlex: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  qrBtn: {
+    backgroundColor: PURPLE,
+    borderRadius: 10,
+    padding: 11,
+    alignItems: "center",
+    justifyContent: "center",
   },
   hint: {
     backgroundColor: "#EEE9FF",

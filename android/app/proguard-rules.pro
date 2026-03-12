@@ -8,3 +8,8 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# react-native-html-to-pdf uses PdfBox which has an optional JPX/JPEG2000
+# decoder dependency that is not bundled. Suppress the missing-class warning
+# so R8 does not fail the release build.
+-dontwarn com.gemalto.jp2.**

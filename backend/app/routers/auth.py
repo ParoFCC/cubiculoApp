@@ -76,9 +76,16 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
             detail="Solo se permiten correos @alm.buap.mx",
         )
 
+    # Validate student_id format for student role: 4-digit year followed by 5 digits
+    if payload.role == UserRole.student and not re.match(r'^\d{9}$', payload.student_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La matrícula debe tener exactamente 9 dígitos (año + 5 dígitos)",
+        )
+
     # Validate student_id is contained in the email username
     email_username = email.split("@")[0]
-    if payload.student_id.lower() not in email_username.lower():
+    if payload.student_id not in email_username:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="La matrícula debe estar incluida en el correo institucional",
@@ -180,7 +187,8 @@ async def verify_email_full(payload: VerifyEmailFullRequest, db: AsyncSession = 
     # Create user
     derived_period = payload.period
     if not derived_period:
-        m = re.match(r'^[a-z]{2}(\d{4})', payload.student_id.lower())
+        # Matricula format: 4-digit year followed by 5 digits (e.g. 202612345)
+        m = re.match(r'^(\d{4})\d{5}$', payload.student_id)
         if m:
             derived_period = f"{m.group(1)}-1"
 

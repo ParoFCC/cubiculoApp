@@ -7,10 +7,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Share,
+  Platform,
 } from "react-native";
 import { productsService } from "../../../services/productsService";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sale } from "../../../types/products.types";
+import { generatePDF } from "react-native-html-to-pdf";
+import Toast from "react-native-toast-message";
 
 type Period = "today" | "week" | "month" | "all";
 
@@ -38,12 +42,20 @@ function getPeriodRange(period: Period): { from?: string; to?: string } {
   return {};
 }
 
+const PERIOD_LABELS: Record<Period, string> = {
+  today: "Hoy",
+  week: "Última semana",
+  month: "Este mes",
+  all: "Todo el historial",
+};
+
 export default function SalesReportScreen() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<Period>("today");
   const [productMap, setProductMap] = useState<Record<string, string>>({});
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     productsService
@@ -100,6 +112,81 @@ export default function SalesReportScreen() {
     0,
   );
 
+  const exportPDF = async () => {
+    if (sales.length === 0) {
+      Toast.show({
+        type: "info",
+        text1: "Sin datos",
+        text2: "No hay ventas para exportar.",
+      });
+      return;
+    }
+    setExporting(true);
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+      const rows = sales
+        .map((s) => {
+          const itemLines = (s.items ?? [])
+            .map(
+              (i) =>
+                `<tr><td style="padding:4px 12px">${
+                  productMap[i.product_id] ?? i.product_id.slice(0, 8)
+                }</td><td style="text-align:center">${
+                  i.quantity
+                }</td><td style="text-align:right">$${(
+                  i.unit_price * i.quantity
+                ).toFixed(2)}</td></tr>`,
+            )
+            .join("");
+          return `<tr style="border-top:1px solid #e5e7eb"><td style="padding:6px 8px">${new Date(
+            s.sold_at,
+          ).toLocaleString("es-MX", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}</td><td style="padding:6px 8px">${
+            s.student_id ?? "—"
+          }</td><td style="padding:6px 8px"><table>${itemLines}</table></td><td style="padding:6px 8px;text-align:right;font-weight:bold">$${s.total.toFixed(
+            2,
+          )}</td></tr>`;
+        })
+        .join("");
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:24px;color:#1a1a2e}h1{color:#5C35D9;margin-bottom:4px}h2{color:#444;font-size:14px;margin-top:0}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#5C35D9;color:#fff;padding:8px;text-align:left}.summary{display:flex;gap:24px;margin:16px 0;background:#F0EFF5;padding:12px 16px;border-radius:8px}.stat{font-size:13px;color:#555}.stat span{font-size:20px;font-weight:800;color:#5C35D9;display:block}</style></head><body><h1>Reporte de Ventas</h1><h2>Período: ${
+        PERIOD_LABELS[period]
+      } &nbsp;·&nbsp; Generado el ${dateStr}</h2><div class="summary"><div class="stat"><span>${
+        sales.length
+      }</span>Ventas</div><div class="stat"><span>${totalItems}</span>Artículos</div><div class="stat"><span>$${totalRevenue.toFixed(
+        2,
+      )}</span>Ingresos</div></div><table><thead><tr><th>Fecha/Hora</th><th>Matrícula</th><th>Productos</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+      const file = await generatePDF({
+        html,
+        fileName: `reporte_ventas_${now.toISOString().split("T")[0]}`,
+        directory: "Documents",
+      });
+      if (file.filePath) {
+        await Share.share({
+          title: "Reporte de ventas",
+          url:
+            Platform.OS === "ios" ? file.filePath : `file://${file.filePath}`,
+        });
+      }
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo generar el PDF.",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -110,7 +197,7 @@ export default function SalesReportScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Period Selector */}
+      {/* Period Selector + Export */}
       <View style={styles.periodRow}>
         {PERIODS.map((p) => (
           <TouchableOpacity
@@ -132,6 +219,24 @@ export default function SalesReportScreen() {
           </TouchableOpacity>
         ))}
       </View>
+      <TouchableOpacity
+        style={[styles.exportBtn, exporting && styles.disabled]}
+        onPress={exportPDF}
+        disabled={exporting}
+      >
+        {exporting ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <MaterialCommunityIcons
+              name="file-pdf-box"
+              size={18}
+              color="#fff"
+            />
+            <Text style={styles.exportBtnText}>Exportar PDF</Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       <FlatList
         data={sales}
@@ -297,4 +402,17 @@ const styles = StyleSheet.create({
     borderTopColor: "#f5f5f5",
   },
   adminName: { fontSize: 12, color: "#9ca3af" },
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: PURPLE,
+    marginHorizontal: 14,
+    marginBottom: 8,
+    paddingVertical: 11,
+    borderRadius: 12,
+  },
+  exportBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  disabled: { opacity: 0.6 },
 });

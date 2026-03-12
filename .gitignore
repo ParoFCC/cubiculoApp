@@ -9,6 +9,7 @@ venv/
 # Node / React Native
 node_modules/
 .expo/
+ios/
 dist/
 build/
 android/.gradle/

@@ -18,6 +18,7 @@ import { attendanceService } from "../../../services/attendanceService";
 import { Game } from "../../../types/games.types";
 import { User } from "../../../types/auth.types";
 import QRScannerModal from "../../../components/QRScannerModal";
+import IDScannerModal from "../../../components/IDScannerModal";
 import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RegisterLoanScreen() {
@@ -39,6 +40,7 @@ export default function RegisterLoanScreen() {
   const [lookingUp, setLookingUp] = useState(false);
   const [hasLookupResult, setHasLookupResult] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showIDScanner, setShowIDScanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingGames, setLoadingGames] = useState(true);
   const [piecesComplete, setPiecesComplete] = useState(true);
@@ -96,6 +98,12 @@ export default function RegisterLoanScreen() {
     lookupStudent(id);
   };
 
+  const handleIDScan = (matricula: string) => {
+    setShowIDScanner(false);
+    setStudentId(matricula);
+    lookupStudent(matricula);
+  };
+
   const handleRegister = async () => {
     if (!selectedGame) {
       Toast.show({
@@ -148,17 +156,30 @@ export default function RegisterLoanScreen() {
           style={[styles.input, styles.inputFlex]}
           value={studentId}
           onChangeText={(v) => {
-            setStudentId(v);
+            const digits = v.replace(/\D/g, "").slice(0, 9);
+            setStudentId(digits);
             setStudentInfo(null);
             setHasLookupResult(false);
           }}
           onBlur={() => lookupStudent(studentId)}
-          placeholder="Ej: be202300001"
+          placeholder="Ej: 202312345"
           placeholderTextColor="#aaa"
+          keyboardType="number-pad"
+          maxLength={9}
           autoCapitalize="none"
         />
         <TouchableOpacity style={styles.qrBtn} onPress={() => setShowQR(true)}>
           <MaterialCommunityIcons name="qrcode-scan" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.qrBtn, { backgroundColor: "#059669" }]}
+          onPress={() => setShowIDScanner(true)}
+        >
+          <MaterialCommunityIcons
+            name="card-account-details-outline"
+            size={22}
+            color="#fff"
+          />
         </TouchableOpacity>
       </View>
 
@@ -169,7 +190,7 @@ export default function RegisterLoanScreen() {
           <Text style={styles.studentCardText}>Buscando...</Text>
         </View>
       )}
-      {!lookingUp && studentInfo && (
+      {!lookingUp && studentInfo && studentInfo.is_active && (
         <View style={[styles.studentCard, styles.studentCardFound]}>
           <MaterialCommunityIcons
             name="account-check"
@@ -179,6 +200,21 @@ export default function RegisterLoanScreen() {
           <View>
             <Text style={styles.studentCardName}>{studentInfo.name}</Text>
             <Text style={styles.studentCardSub}>{studentInfo.email}</Text>
+          </View>
+        </View>
+      )}
+      {!lookingUp && studentInfo && !studentInfo.is_active && (
+        <View style={[styles.studentCard, styles.studentCardInactive]}>
+          <MaterialCommunityIcons
+            name="account-cancel-outline"
+            size={20}
+            color="#DC2626"
+          />
+          <View>
+            <Text style={styles.studentCardName}>{studentInfo.name}</Text>
+            <Text style={styles.studentCardSub}>
+              Cuenta desactivada — no se puede registrar préstamo
+            </Text>
           </View>
         </View>
       )}
@@ -289,9 +325,13 @@ export default function RegisterLoanScreen() {
       )}
 
       <TouchableOpacity
-        style={[styles.btn, (loading || adminIsOut) && styles.btnDisabled]}
+        style={[
+          styles.btn,
+          (loading || adminIsOut || studentInfo?.is_active === false) &&
+            styles.btnDisabled,
+        ]}
         onPress={handleRegister}
-        disabled={loading || adminIsOut}
+        disabled={loading || adminIsOut || studentInfo?.is_active === false}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -304,6 +344,11 @@ export default function RegisterLoanScreen() {
         visible={showQR}
         onScan={handleQRScan}
         onClose={() => setShowQR(false)}
+      />
+      <IDScannerModal
+        visible={showIDScanner}
+        onScan={handleIDScan}
+        onClose={() => setShowIDScanner(false)}
       />
     </ScrollView>
   );
@@ -354,6 +399,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0fdf4",
     borderWidth: 1,
     borderColor: "#bbf7d0",
+  },
+  studentCardInactive: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
   },
   studentCardGuest: {
     backgroundColor: "#FFF7ED",

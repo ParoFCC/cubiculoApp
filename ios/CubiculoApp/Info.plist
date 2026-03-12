@@ -49,7 +49,9 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>La app usa la cámara para escanear el QR del estudiante.</string>
+	<string>La app usa la cámara para escanear el QR del estudiante y para tomar fotos de productos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>La app accede a la galería para seleccionar fotos de productos.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

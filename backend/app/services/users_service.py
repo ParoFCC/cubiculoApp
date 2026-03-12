@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from fastapi import HTTPException, status
 
 from app.models.user import User, UserRole
@@ -32,9 +32,26 @@ async def get_by_id(db: AsyncSession, user_id: uuid.UUID) -> User:
 
 
 async def get_by_student_id(db: AsyncSession, student_id: str) -> User:
-    """Look up a user by their institutional student ID string."""
+    """Look up a user by their institutional student ID string.
+
+    Accepts both the current 9-digit numeric format (202329205) and the
+    legacy 2-letter-prefix format (be202329205) that may still be stored
+    in the database for older accounts.
+    """
+    # Try exact match first (new format), then 2-letter legacy prefix fallback
     user = (
-        await db.execute(select(User).where(User.student_id == student_id))
+        await db.execute(
+            select(User).where(
+                or_(
+                    User.student_id == student_id,
+                    User.student_id == func.concat(
+                        func.substr(User.student_id, 1, 2), student_id
+                    ),
+                    # Handles rows where stored value is "XX" + student_id
+                    User.student_id.like(f"__{student_id}"),
+                )
+            )
+        )
     ).scalar_one_or_none()
     if not user:
         raise HTTPException(

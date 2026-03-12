@@ -50,7 +50,7 @@ class GameOut(BaseModel):
 # ── Loans ─────────────────────────────────────────────────────────────────
 
 class LoanCreate(BaseModel):
-    student_id: str  # Institutional student ID (e.g. be202300001)
+    student_id: str  # Institutional student ID / matricula (e.g. 202312345)
     game_id: uuid.UUID
     due_at: datetime | None = None
     notes: str | None = None

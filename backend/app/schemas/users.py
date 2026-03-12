@@ -31,9 +31,13 @@ class UserCreate(BaseModel):
     @field_validator("student_id")
     @classmethod
     def student_id_required_for_student(cls, v: str | None, info) -> str | None:
+        import re
         role = info.data.get("role")
-        if role == UserRole.student and not v:
-            raise ValueError("student_id es requerido para estudiantes")
+        if role == UserRole.student:
+            if not v:
+                raise ValueError("student_id es requerido para estudiantes")
+            if not re.match(r'^\d{9}$', v):
+                raise ValueError("La matrícula debe tener exactamente 9 dígitos (año + 5 dígitos)")
         return v
 
 

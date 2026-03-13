@@ -106,3 +106,14 @@ async def request_loan(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Juego no disponible")
     return {"message": "Solicitud enviada", "game": game.name}
+
+
+# ── Delete (soft) ──────────────────────────────────────────────────────────
+
+@router.delete("/{game_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_game(
+    game_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    await svc.soft_delete_game(db, game_id)

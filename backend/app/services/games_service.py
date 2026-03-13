@@ -51,6 +51,12 @@ async def update_game(
     return game
 
 
+async def soft_delete_game(db: AsyncSession, game_id: uuid.UUID) -> None:
+    game = await get_game(db, game_id)
+    game.is_active = False
+    await db.commit()
+
+
 # ── Loans ─────────────────────────────────────────────────────────────────
 
 async def list_loans(db: AsyncSession, cubiculo_id: uuid.UUID, skip: int = 0, limit: int = 50) -> list[GameLoan]:

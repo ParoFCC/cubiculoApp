@@ -6,6 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import pytz
 import sqlalchemy as sa
 
 from app.core.config import settings
@@ -20,6 +21,33 @@ import app.models.attendance  # noqa: F401
 
 # ── Rate limiter ───────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+
+# ── Auto-close cash registers at 19:00 Mexico City ───────────────────────
+async def _auto_close_cash_registers() -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models.products import CashRegister, CashRegisterStatus, Sale
+    from sqlalchemy import select, func
+    from datetime import datetime, timezone
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(CashRegister).where(CashRegister.status == CashRegisterStatus.open)
+        )
+        open_registers = list(result.scalars().all())
+        if not open_registers:
+            return
+        now = datetime.now(timezone.utc)
+        for cash in open_registers:
+            total_result = await db.execute(
+                select(func.coalesce(func.sum(Sale.total), 0))
+                .where(Sale.cash_register_id == cash.id)
+            )
+            sales_total = float(total_result.scalar())
+            cash.closing_balance = round(float(cash.opening_balance) + sales_total, 2)
+            cash.status = CashRegisterStatus.closed
+            cash.closed_at = now
+        await db.commit()
+
 
 # ── Overdue loan cron ──────────────────────────────────────────────────────
 async def _mark_overdue_loans() -> None:
@@ -57,8 +85,17 @@ async def lifespan(app: FastAPI):
             "AND is_super_admin = FALSE"
         ))
     # Start cron scheduler
+    mexico_tz = pytz.timezone("America/Mexico_City")
     scheduler = AsyncIOScheduler()
     scheduler.add_job(_mark_overdue_loans, "interval", hours=1, id="mark_overdue")
+    scheduler.add_job(
+        _auto_close_cash_registers,
+        "cron",
+        hour=19,
+        minute=0,
+        timezone=mexico_tz,
+        id="auto_close_cash",
+    )
     scheduler.start()
     yield
     scheduler.shutdown(wait=False)

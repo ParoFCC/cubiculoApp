@@ -34,6 +34,7 @@ export default function InventoryProductScreen({ navigation }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -144,7 +145,25 @@ export default function InventoryProductScreen({ navigation }: Props) {
     }
   };
 
-  const handleCreate = async () => {
+  const openCreateModal = () => {
+    setEditingProduct(null);
+    setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
+    setShowModal(true);
+  };
+
+  const openEdit = (product: Product) => {
+    setEditingProduct(product);
+    setForm({
+      name: product.name,
+      price: String(product.price),
+      stock: String(product.stock),
+      category: product.category ?? "otro",
+      image_url: product.image_url ?? "",
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
     if (!form.name.trim() || !form.price || !form.stock) {
       Toast.show({
         type: "error",
@@ -173,33 +192,43 @@ export default function InventoryProductScreen({ navigation }: Props) {
     }
     setSaving(true);
     try {
-      await productsService.createProduct({
-        name: form.name.trim(),
-        price,
-        stock,
-        category: form.category,
-        image_url: form.image_url || undefined,
-        is_active: true,
-      });
-      setForm({
-        name: "",
-        price: "",
-        stock: "",
-        category: "otro",
-        image_url: "",
-      });
+      if (editingProduct) {
+        await productsService.updateProduct(editingProduct.id, {
+          name: form.name.trim(),
+          price,
+          stock,
+          category: form.category,
+          image_url: form.image_url || undefined,
+        });
+        Toast.show({
+          type: "success",
+          text1: "Producto actualizado",
+          text2: `"${form.name.trim()}" guardado.`,
+        });
+      } else {
+        await productsService.createProduct({
+          name: form.name.trim(),
+          price,
+          stock,
+          category: form.category,
+          image_url: form.image_url || undefined,
+          is_active: true,
+        });
+        Toast.show({
+          type: "success",
+          text1: "Producto creado",
+          text2: `"${form.name.trim()}" agregado al inventario.`,
+        });
+      }
+      setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
+      setEditingProduct(null);
       setShowModal(false);
-      fetchProducts();
-      Toast.show({
-        type: "success",
-        text1: "Producto creado",
-        text2: `"${form.name.trim()}" agregado al inventario.`,
-      });
+      fetchProducts(true);
     } catch (err: any) {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: extractApiErrorMessage(err, "No se pudo crear el producto."),
+        text2: extractApiErrorMessage(err, "No se pudo guardar el producto."),
       });
     } finally {
       setSaving(false);
@@ -235,7 +264,7 @@ export default function InventoryProductScreen({ navigation }: Props) {
       <View style={styles.quickActions}>
         <TouchableOpacity
           style={[styles.qaCard, styles.qaCardPrimary]}
-          onPress={() => setShowModal(true)}
+          onPress={openCreateModal}
         >
           <MaterialCommunityIcons
             name="plus-circle-outline"
@@ -295,7 +324,7 @@ export default function InventoryProductScreen({ navigation }: Props) {
             <Text style={styles.empty}>Sin productos registrados</Text>
             <TouchableOpacity
               style={styles.emptyAddBtn}
-              onPress={() => setShowModal(true)}
+              onPress={openCreateModal}
             >
               <Text style={styles.emptyAddBtnText}>
                 + Agregar primer producto
@@ -328,6 +357,16 @@ export default function InventoryProductScreen({ navigation }: Props) {
               {!item.is_active && <Text style={styles.inactive}>Inactivo</Text>}
             </View>
             <TouchableOpacity
+              style={styles.editBtn}
+              onPress={() => openEdit(item)}
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={18}
+                color={PURPLE}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.trashBtn}
               onPress={() => handleDelete(item)}
             >
@@ -345,7 +384,7 @@ export default function InventoryProductScreen({ navigation }: Props) {
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.overlay}>
           <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Nuevo Producto</Text>
+            <Text style={styles.modalTitle}>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</Text>
             <TextInput
               style={styles.input}
               value={form.name}
@@ -414,19 +453,19 @@ export default function InventoryProductScreen({ navigation }: Props) {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setShowModal(false)}
+                onPress={() => { setShowModal(false); setEditingProduct(null); }}
               >
                 <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveBtn, saving && styles.disabled]}
-                onPress={handleCreate}
+                onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveText}>Crear</Text>
+                  <Text style={styles.saveText}>{editingProduct ? "Guardar" : "Crear"}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -523,8 +562,14 @@ const styles = StyleSheet.create({
   lowStock: { backgroundColor: "#FFEBEE" },
   stockText: { fontSize: 12, fontWeight: "600", color: "#444" },
   inactive: { fontSize: 11, color: "#999", marginTop: 4 },
+  editBtn: {
+    marginLeft: 6,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#EEE9FF",
+  },
   trashBtn: {
-    marginLeft: 10,
+    marginLeft: 6,
     padding: 6,
     borderRadius: 8,
     backgroundColor: "#FEF2F2",

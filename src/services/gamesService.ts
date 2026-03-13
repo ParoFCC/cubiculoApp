@@ -19,7 +19,7 @@ export const gamesService = {
 
   // Admin
   createGame: (
-    data: Omit<Game, "id" | "created_at"> & { instructions_url?: string },
+    data: Omit<Game, "id" | "created_at" | "is_active"> & { instructions_url?: string },
   ): Promise<Game> =>
     api.post<Game>("/games", data).then((r) => {
       invalidateCache(GAMES_CACHE_KEY);
@@ -33,6 +33,11 @@ export const gamesService = {
     api.patch<Game>(`/games/${id}`, data).then((r) => {
       invalidateCache(GAMES_CACHE_KEY);
       return r.data;
+    }),
+
+  deleteGame: (id: string): Promise<void> =>
+    api.delete(`/games/${id}`).then(() => {
+      invalidateCache(GAMES_CACHE_KEY);
     }),
 
   getLoanHistory: (): Promise<GameLoan[]> =>

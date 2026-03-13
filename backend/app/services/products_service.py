@@ -24,17 +24,20 @@ async def list_products(db: AsyncSession, cubiculo_id: uuid.UUID) -> list[Produc
 
 async def delete_all_products(db: AsyncSession, cubiculo_id: uuid.UUID) -> int:
     result = await db.execute(
-        delete(Product).where(Product.cubiculo_id == cubiculo_id)
+        select(Product).where(Product.cubiculo_id == cubiculo_id, Product.is_active.is_(True))
     )
+    products_list = list(result.scalars().all())
+    for p in products_list:
+        p.is_active = False
     await db.commit()
-    return result.rowcount
+    return len(products_list)
 
 
 async def delete_product(db: AsyncSession, product_id: uuid.UUID, cubiculo_id: uuid.UUID) -> None:
     product = await db.get(Product, product_id)
     if not product or product.cubiculo_id != cubiculo_id:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    await db.delete(product)
+    product.is_active = False
     await db.commit()
 
 

@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
   Share,
+  Alert,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useNavigation } from "@react-navigation/native";
@@ -50,6 +51,7 @@ export default function InventoryScreen() {
     instructions_url: "",
     quantity_total: "1",
   });
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -81,6 +83,7 @@ export default function InventoryScreen() {
   );
 
   const openModal = () => {
+    setEditingGame(null);
     setForm({
       name: "",
       description: "",
@@ -90,6 +93,46 @@ export default function InventoryScreen() {
     });
     setUploading(false);
     setShowModal(true);
+  };
+
+  const openEdit = (game: Game) => {
+    setEditingGame(game);
+    setForm({
+      name: game.name,
+      description: game.description ?? "",
+      instructions: game.instructions ?? "",
+      instructions_url: game.instructions_url ?? "",
+      quantity_total: String(game.quantity_total),
+    });
+    setUploading(false);
+    setShowModal(true);
+  };
+
+  const handleDelete = (game: Game) => {
+    Alert.alert(
+      "Eliminar juego",
+      `¿Eliminar "${game.name}"? El juego no aparecerá más en el catálogo.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await gamesService.deleteGame(game.id);
+              Toast.show({ type: "success", text1: `"${game.name}" eliminado` });
+              fetchGames(true);
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: extractApiErrorMessage(err, "No se pudo eliminar."),
+              });
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handlePickFile = async () => {
@@ -123,7 +166,7 @@ export default function InventoryScreen() {
     }
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!form.name.trim()) {
       Toast.show({ type: "error", text1: "El nombre es obligatorio" });
       return;
@@ -135,22 +178,33 @@ export default function InventoryScreen() {
     }
     setSaving(true);
     try {
-      await gamesService.createGame({
-        name: form.name.trim(),
-        description: form.description.trim() || "",
-        instructions: form.instructions.trim() || "",
-        instructions_url: form.instructions_url.trim() || undefined,
-        quantity_total: qty,
-        quantity_avail: qty,
-      });
+      if (editingGame) {
+        await gamesService.updateGame(editingGame.id, {
+          name: form.name.trim(),
+          description: form.description.trim() || "",
+          instructions: form.instructions.trim() || "",
+          instructions_url: form.instructions_url.trim() || null,
+          quantity_total: qty,
+        });
+        Toast.show({ type: "success", text1: `"${form.name.trim()}" actualizado` });
+      } else {
+        await gamesService.createGame({
+          name: form.name.trim(),
+          description: form.description.trim() || "",
+          instructions: form.instructions.trim() || "",
+          instructions_url: form.instructions_url.trim() || undefined,
+          quantity_total: qty,
+          quantity_avail: qty,
+        });
+        Toast.show({ type: "success", text1: `"${form.name.trim()}" creado` });
+      }
       setShowModal(false);
-      fetchGames();
-      Toast.show({ type: "success", text1: `"${form.name.trim()}" creado` });
+      fetchGames(true);
     } catch (err: any) {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: extractApiErrorMessage(err, "No se pudo crear el juego."),
+        text2: extractApiErrorMessage(err, "No se pudo guardar el juego."),
       });
     } finally {
       setSaving(false);
@@ -254,6 +308,26 @@ export default function InventoryScreen() {
                 />
               </TouchableOpacity>
               <TouchableOpacity
+                style={styles.editIconBtn}
+                onPress={() => openEdit(item)}
+              >
+                <MaterialCommunityIcons
+                  name="pencil-outline"
+                  size={18}
+                  color={PURPLE}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteIconBtn}
+                onPress={() => handleDelete(item)}
+              >
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={18}
+                  color="#E53935"
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.loanBtn}
                 onPress={() =>
                   navigation.navigate("RegisterLoan", { preselectedGame: item })
@@ -328,11 +402,11 @@ export default function InventoryScreen() {
         </View>
       </Modal>
 
-      {/* Create Game Modal */}
+      {/* Create / Edit Game Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
         <View style={styles.overlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Nuevo Juego</Text>
+            <Text style={styles.modalTitle}>{editingGame ? "Editar Juego" : "Nuevo Juego"}</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>Nombre *</Text>
               <TextInput
@@ -443,13 +517,13 @@ export default function InventoryScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.saveBtn}
-                onPress={handleCreate}
+                onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.saveText}>Crear</Text>
+                  <Text style={styles.saveText}>{editingGame ? "Guardar" : "Crear"}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -597,6 +671,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 6,
+  },
+  editIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: PURPLE_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
   },
   qrOverlay: {
     flex: 1,

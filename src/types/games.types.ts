@@ -7,6 +7,7 @@ export interface Game {
   image_url?: string;
   quantity_total: number;
   quantity_avail: number;
+  is_active: boolean;
   created_at: string;
 }
 

@@ -19,7 +19,9 @@ export const gamesService = {
 
   // Admin
   createGame: (
-    data: Omit<Game, "id" | "created_at" | "is_active"> & { instructions_url?: string },
+    data: Omit<Game, "id" | "created_at" | "is_active"> & {
+      instructions_url?: string;
+    },
   ): Promise<Game> =>
     api.post<Game>("/games", data).then((r) => {
       invalidateCache(GAMES_CACHE_KEY);

@@ -147,7 +147,13 @@ export default function InventoryProductScreen({ navigation }: Props) {
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
+    setForm({
+      name: "",
+      price: "",
+      stock: "",
+      category: "otro",
+      image_url: "",
+    });
     setShowModal(true);
   };
 
@@ -220,7 +226,13 @@ export default function InventoryProductScreen({ navigation }: Props) {
           text2: `"${form.name.trim()}" agregado al inventario.`,
         });
       }
-      setForm({ name: "", price: "", stock: "", category: "otro", image_url: "" });
+      setForm({
+        name: "",
+        price: "",
+        stock: "",
+        category: "otro",
+        image_url: "",
+      });
       setEditingProduct(null);
       setShowModal(false);
       fetchProducts(true);
@@ -384,7 +396,9 @@ export default function InventoryProductScreen({ navigation }: Props) {
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.overlay}>
           <View style={styles.modal}>
-            <Text style={styles.modalTitle}>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</Text>
+            <Text style={styles.modalTitle}>
+              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+            </Text>
             <TextInput
               style={styles.input}
               value={form.name}
@@ -453,7 +467,10 @@ export default function InventoryProductScreen({ navigation }: Props) {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => { setShowModal(false); setEditingProduct(null); }}
+                onPress={() => {
+                  setShowModal(false);
+                  setEditingProduct(null);
+                }}
               >
                 <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
@@ -465,7 +482,9 @@ export default function InventoryProductScreen({ navigation }: Props) {
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveText}>{editingProduct ? "Guardar" : "Crear"}</Text>
+                  <Text style={styles.saveText}>
+                    {editingProduct ? "Guardar" : "Crear"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

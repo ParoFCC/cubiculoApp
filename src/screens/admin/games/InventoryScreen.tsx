@@ -120,7 +120,10 @@ export default function InventoryScreen() {
           onPress: async () => {
             try {
               await gamesService.deleteGame(game.id);
-              Toast.show({ type: "success", text1: `"${game.name}" eliminado` });
+              Toast.show({
+                type: "success",
+                text1: `"${game.name}" eliminado`,
+              });
               fetchGames(true);
             } catch (err: any) {
               Toast.show({
@@ -186,7 +189,10 @@ export default function InventoryScreen() {
           instructions_url: form.instructions_url.trim() || null,
           quantity_total: qty,
         });
-        Toast.show({ type: "success", text1: `"${form.name.trim()}" actualizado` });
+        Toast.show({
+          type: "success",
+          text1: `"${form.name.trim()}" actualizado`,
+        });
       } else {
         await gamesService.createGame({
           name: form.name.trim(),
@@ -406,7 +412,9 @@ export default function InventoryScreen() {
       <Modal visible={showModal} animationType="slide" transparent>
         <View style={styles.overlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editingGame ? "Editar Juego" : "Nuevo Juego"}</Text>
+            <Text style={styles.modalTitle}>
+              {editingGame ? "Editar Juego" : "Nuevo Juego"}
+            </Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.label}>Nombre *</Text>
               <TextInput
@@ -523,7 +531,9 @@ export default function InventoryScreen() {
                 {saving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.saveText}>{editingGame ? "Guardar" : "Crear"}</Text>
+                  <Text style={styles.saveText}>
+                    {editingGame ? "Guardar" : "Crear"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

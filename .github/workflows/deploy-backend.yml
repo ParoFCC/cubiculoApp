@@ -70,7 +70,7 @@ jobs:
             Group=${APP_GROUP}
             WorkingDirectory=${APP_DIR}
             Environment=PYTHONUNBUFFERED=1
-            ExecStart=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+            ExecStart=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8085
             Restart=always
             RestartSec=5
 

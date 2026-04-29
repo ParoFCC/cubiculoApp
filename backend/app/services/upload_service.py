@@ -2,17 +2,36 @@
 Cloudinary upload service.
 Reads CLOUDINARY_URL from settings (format: cloudinary://api_key:api_secret@cloud_name).
 """
+import os
+from urllib.parse import urlparse
+
 import cloudinary
 import cloudinary.uploader
 from app.core.config import settings
 
 
 def _configure() -> None:
-    if not settings.CLOUDINARY_URL:
+    url = settings.CLOUDINARY_URL
+    if not url:
         raise ValueError("CLOUDINARY_URL not configured")
-    # The Cloudinary SDK automatically parses CLOUDINARY_URL when set as an
-    # environment variable, but we set it explicitly from settings to be safe.
-    cloudinary.config(cloudinary_url=settings.CLOUDINARY_URL)
+
+    # Parse cloudinary://<api_key>:<api_secret>@<cloud_name> manually.
+    # The SDK auto-parses CLOUDINARY_URL only from os.environ, and the
+    # `cloudinary_url=` kwarg is unreliable across versions, so we set the
+    # individual fields explicitly to avoid "Must supply api_key" errors.
+    parsed = urlparse(url)
+    if parsed.scheme != "cloudinary" or not parsed.hostname or not parsed.username or not parsed.password:
+        # Fallback: expose to env and let the SDK parse it.
+        os.environ["CLOUDINARY_URL"] = url
+        cloudinary.config()
+        return
+
+    cloudinary.config(
+        cloud_name=parsed.hostname,
+        api_key=parsed.username,
+        api_secret=parsed.password,
+        secure=True,
+    )
 
 
 def upload_file(file_bytes: bytes, filename: str, folder: str = "cubiculoapp") -> str:

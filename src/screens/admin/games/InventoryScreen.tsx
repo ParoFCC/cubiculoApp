@@ -330,70 +330,84 @@ export default function InventoryScreen() {
             ratio === 0 ? "#EF4444" : ratio < 0.4 ? "#F59E0B" : "#22C55E";
           return (
             <View style={styles.card}>
-              <View style={[styles.dot, { backgroundColor: dotColor }]} />
-              {item.image_url ? (
-                <Image
-                  source={{ uri: item.image_url }}
-                  style={styles.gameThumb}
-                />
-              ) : (
-                <View style={styles.gameThumbFallback}>
+              <View style={styles.cardTop}>
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.gameThumb}
+                  />
+                ) : (
+                  <View style={styles.gameThumbFallback}>
+                    <MaterialCommunityIcons
+                      name="dice-multiple"
+                      size={20}
+                      color={PURPLE}
+                    />
+                  </View>
+                )}
+                <View style={styles.cardBody}>
+                  <Text
+                    style={styles.name}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {item.name}
+                  </Text>
+                  <View style={styles.subRow}>
+                    <View style={[styles.dot, { backgroundColor: dotColor }]} />
+                    <Text style={styles.sub}>
+                      {item.quantity_avail}/{item.quantity_total} disponibles
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.loanBtn}
+                  onPress={() =>
+                    navigation.navigate("RegisterLoan", {
+                      preselectedGame: item,
+                    })
+                  }
+                >
                   <MaterialCommunityIcons
-                    name="dice-multiple"
+                    name="hand-pointing-right"
+                    size={16}
+                    color={PURPLE}
+                  />
+                  <Text style={styles.loanBtnText}>Prestar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.qrIconBtn}
+                  onPress={() => setQrGame(item)}
+                >
+                  <MaterialCommunityIcons
+                    name="qrcode"
                     size={18}
                     color={PURPLE}
                   />
-                </View>
-              )}
-              <View style={styles.cardBody}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.sub}>
-                  {item.quantity_avail}/{item.quantity_total} disponibles
-                </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.editIconBtn}
+                  onPress={() => openEdit(item)}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={18}
+                    color={PURPLE}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteIconBtn}
+                  onPress={() => handleDelete(item)}
+                >
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={18}
+                    color="#E53935"
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.qrIconBtn}
-                onPress={() => setQrGame(item)}
-              >
-                <MaterialCommunityIcons
-                  name="qrcode"
-                  size={20}
-                  color={PURPLE}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.editIconBtn}
-                onPress={() => openEdit(item)}
-              >
-                <MaterialCommunityIcons
-                  name="pencil-outline"
-                  size={18}
-                  color={PURPLE}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteIconBtn}
-                onPress={() => handleDelete(item)}
-              >
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={18}
-                  color="#E53935"
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.loanBtn}
-                onPress={() =>
-                  navigation.navigate("RegisterLoan", { preselectedGame: item })
-                }
-              >
-                <MaterialCommunityIcons
-                  name="hand-pointing-right"
-                  size={16}
-                  color={PURPLE}
-                />
-                <Text style={styles.loanBtnText}>Prestar</Text>
-              </TouchableOpacity>
             </View>
           );
         }}
@@ -649,37 +663,53 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
+    elevation: 1,
+    gap: 12,
+  },
+  cardTop: {
     flexDirection: "row",
     alignItems: "center",
-    elevation: 1,
-    gap: 10,
+    gap: 12,
   },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   gameThumb: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
+    width: 52,
+    height: 52,
+    borderRadius: 10,
     backgroundColor: "#f3f4f6",
   },
   gameThumbFallback: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
+    width: 52,
+    height: 52,
+    borderRadius: 10,
     backgroundColor: PURPLE_LIGHT,
     alignItems: "center",
     justifyContent: "center",
   },
   cardBody: { flex: 1 },
-  name: { fontSize: 15, fontWeight: "700", color: "#1a1a2e" },
-  sub: { fontSize: 12, color: "#888", marginTop: 3 },
+  name: { fontSize: 16, fontWeight: "700", color: "#1a1a2e" },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  sub: { fontSize: 12, color: "#888" },
   loanBtn: {
+    flex: 1,
     backgroundColor: PURPLE_LIGHT,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 9,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
+    gap: 6,
   },
   loanBtnText: { color: PURPLE, fontWeight: "700", fontSize: 13 },
   // Modal
@@ -776,26 +806,25 @@ const styles = StyleSheet.create({
   uploadedUrl: { flex: 1, fontSize: 11, color: "#374151" },
   // QR modal
   qrIconBtn: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 10,
     backgroundColor: PURPLE_LIGHT,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 6,
   },
   editIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     backgroundColor: PURPLE_LIGHT,
     alignItems: "center",
     justifyContent: "center",
   },
   deleteIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     backgroundColor: "#FEF2F2",
     alignItems: "center",
     justifyContent: "center",

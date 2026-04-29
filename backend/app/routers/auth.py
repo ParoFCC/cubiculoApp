@@ -23,6 +23,7 @@ from app.core.security import (
 )
 from app.models.user import User, UserRole
 from app.models.email_verification import EmailVerification
+from app.models.revoked_token import RevokedToken
 from app.services.email_service import send_verification_code, send_password_reset_code
 from jose import JWTError
 
@@ -118,33 +119,13 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
     return {"message": f"Código enviado a {email}. Válido por {settings.VERIFICATION_CODE_EXPIRE_MINUTES} minutos."}
 
 
-@router.post("/verify-email", response_model=TokenResponse, status_code=201)
-async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
-    """Step 2: verify code and create the user account."""
-    email = payload.email.lower()
-
-    verification = (
-        await db.execute(
-            select(EmailVerification).where(
-                EmailVerification.email == email,
-                EmailVerification.is_used.is_(False),
-            )
-        )
-    ).scalar_one_or_none()
-
-    if not verification:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No hay un código pendiente para este correo")
-
-    if verification.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El código ha expirado. Vuelve a registrarte.")
-
-    if verification.code != payload.code:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código incorrecto")
-
-    # --- We need the registration data; it's stored temporarily in a second pending request.
-    # Since we don't have a session store, the client must re-send the full data.
-    # We handle this by accepting all fields here too (see VerifyEmailFullRequest below).
-    raise HTTPException(status_code=500, detail="Use /verify-email-full")
+@router.post("/verify-email", status_code=status.HTTP_410_GONE)
+async def verify_email_gone():
+    """Deprecated endpoint — use /verify-email-full instead."""
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Este endpoint fue eliminado. Usa /auth/verify-email-full.",
+    )
 
 
 class VerifyEmailFullRequest(BaseModel):
@@ -158,7 +139,8 @@ class VerifyEmailFullRequest(BaseModel):
 
 
 @router.post("/verify-email-full", response_model=TokenResponse, status_code=201)
-async def verify_email_full(payload: VerifyEmailFullRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def verify_email_full(request: Request, payload: VerifyEmailFullRequest, db: AsyncSession = Depends(get_db)):
     """Step 2 (full): verify code + create user + return tokens."""
     email = payload.email.lower()
 
@@ -177,8 +159,21 @@ async def verify_email_full(payload: VerifyEmailFullRequest, db: AsyncSession = 
     if verification.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="El código ha expirado. Vuelve a registrarte.")
 
+    MAX_ATTEMPTS = 5
+    if verification.failed_attempts >= MAX_ATTEMPTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Demasiados intentos fallidos. Vuelve a registrarte para obtener un nuevo código.",
+        )
+
     if verification.code != payload.code:
-        raise HTTPException(status_code=400, detail="Código incorrecto")
+        verification.failed_attempts += 1
+        await db.commit()
+        remaining = MAX_ATTEMPTS - verification.failed_attempts
+        raise HTTPException(
+            status_code=400,
+            detail=f"Código incorrecto. Intentos restantes: {remaining}",
+        )
 
     # Mark code used
     verification.is_used = True
@@ -252,6 +247,7 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
         if data.get("type") != "refresh":
             raise JWTError()
         user_id = data.get("sub")
+        jti = data.get("jti")
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -263,6 +259,15 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
     except (ValueError, AttributeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
 
+    # Reject if the token was revoked (logged out)
+    if jti:
+        revoked = await db.get(RevokedToken, jti)
+        if revoked:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token revocado. Inicia sesión nuevamente.",
+            )
+
     result = await db.execute(select(User).where(User.id == uid))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
@@ -271,11 +276,28 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
     return {"access_token": create_access_token(str(user.id), user.role.value)}
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout():
-    # Stateless JWT: el cliente elimina el token.
-    # Para revocación real, implementar blacklist con Redis.
-    return
+async def logout(payload: LogoutRequest, db: AsyncSession = Depends(get_db)):
+    """Revoke the refresh token so it cannot be reused after logout."""
+    try:
+        data = decode_token(payload.refresh_token)
+        jti = data.get("jti")
+        exp = data.get("exp")
+        if jti and exp:
+            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+            db.add(RevokedToken(
+                jti=jti,
+                expires_at=expires_at,
+                revoked_at=datetime.now(timezone.utc),
+            ))
+            await db.commit()
+    except Exception:
+        # Token already invalid / expired — logout is still successful
+        pass
 
 
 class ForgotPasswordRequest(BaseModel):

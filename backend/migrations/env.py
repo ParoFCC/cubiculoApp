@@ -17,6 +17,8 @@ import app.models.game_loan  # noqa
 import app.models.printing  # noqa
 import app.models.products  # noqa
 import app.models.email_verification  # noqa
+import app.models.attendance  # noqa
+import app.models.revoked_token  # noqa
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("+asyncpg", "+psycopg2"))

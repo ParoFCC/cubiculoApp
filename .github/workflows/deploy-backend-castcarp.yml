@@ -1,0 +1,89 @@
+name: Deploy Backend — cubiculo-api.castelancarpinteyro.com
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend-castcarp.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy-backend-castcarp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare deploy directory permissions
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: cubiculo-api.castelancarpinteyro.com
+          username: cuboest
+          password: ${{ secrets.CASTCARP_SSH_PASSWORD }}
+          script: |
+            set -e
+            sudo mkdir -p /opt/cubiculo
+            sudo chown -R cuboest:cuboest /opt/cubiculo
+
+      - name: Deploy backend files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: cubiculo-api.castelancarpinteyro.com
+          username: cuboest
+          password: ${{ secrets.CASTCARP_SSH_PASSWORD }}
+          source: "backend/*"
+          target: /opt/cubiculo
+          overwrite: true
+          strip_components: 1
+
+      - name: Install dependencies and restart backend service
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: cubiculo-api.castelancarpinteyro.com
+          username: cuboest
+          password: ${{ secrets.CASTCARP_SSH_PASSWORD }}
+          script: |
+            set -e
+            cd /opt/cubiculo
+
+            if [ ! -d ".venv" ]; then python3 -m venv .venv; fi
+            source .venv/bin/activate
+            pip install --upgrade pip --quiet
+            pip install -r requirements.txt --quiet
+            alembic upgrade head
+
+            SERVICE_NAME="cubiculo-backend-castcarp"
+            SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+            APP_DIR="/opt/cubiculo"
+            APP_USER="cuboest"
+            APP_GROUP="cuboest"
+
+            if ! sudo systemctl list-unit-files | grep -q "^${SERVICE_NAME}\.service"; then
+              sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+            [Unit]
+            Description=Cubiculo Backend API — castelancarpinteyro.com
+            After=network.target
+
+            [Service]
+            User=${APP_USER}
+            Group=${APP_GROUP}
+            WorkingDirectory=${APP_DIR}
+            EnvironmentFile=${APP_DIR}/.env
+            Environment=PYTHONUNBUFFERED=1
+            ExecStart=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8087
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+              sudo systemctl daemon-reload
+              sudo systemctl enable "${SERVICE_NAME}"
+            fi
+
+            sudo systemctl restart "${SERVICE_NAME}"
+            sudo systemctl --no-pager --full status "${SERVICE_NAME}" || true

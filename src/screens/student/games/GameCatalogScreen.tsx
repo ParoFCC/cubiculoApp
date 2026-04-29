@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { gamesService } from "../../../services/gamesService";
 import { Game } from "../../../types/games.types";
@@ -75,12 +75,14 @@ export default function GameCatalogScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchGames();
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, [fetchGames]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGames();
+      return () => {
+        abortRef.current?.abort();
+      };
+    }, [fetchGames]),
+  );
 
   const filtered = games.filter((g) => {
     const matchSearch =

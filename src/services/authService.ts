@@ -26,7 +26,10 @@ export const authService = {
       })
       .then((r) => r.data),
 
-  logout: (): Promise<void> => api.post("/auth/logout").then(() => undefined),
+  logout: (refreshToken: string): Promise<void> =>
+    api
+      .post("/auth/logout", { refresh_token: refreshToken })
+      .then(() => undefined),
 
   requestPasswordReset: (email: string): Promise<{ message: string }> =>
     api

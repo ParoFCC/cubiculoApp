@@ -25,7 +25,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    await authService.logout().catch(() => {});
+    const refreshToken = storage.getRefreshToken();
+    if (refreshToken) {
+      await authService.logout(refreshToken).catch(() => {});
+    }
     storage.clear();
     set({ user: null, isAuthenticated: false });
   },

@@ -44,8 +44,19 @@ async def update_game(
     db: AsyncSession, game_id: uuid.UUID, payload: GameUpdate
 ) -> Game:
     game = await get_game(db, game_id)
-    for field, value in payload.model_dump(exclude_none=True).items():
+    updates = payload.model_dump(exclude_none=True)
+
+    # Adjust quantity_avail proportionally when quantity_total changes.
+    # E.g. total 3→5 with 2 on loan: avail was 1, delta=+2, new avail=3.
+    if "quantity_total" in updates:
+        new_total = updates["quantity_total"]
+        delta = new_total - game.quantity_total
+        new_avail = max(0, game.quantity_avail + delta)
+        game.quantity_avail = new_avail
+
+    for field, value in updates.items():
         setattr(game, field, value)
+
     await db.commit()
     await db.refresh(game)
     return game

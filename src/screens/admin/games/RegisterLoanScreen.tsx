@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,11 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { gamesService } from "../../../services/gamesService";
 import { usersService } from "../../../services/usersService";
 import { attendanceService } from "../../../services/attendanceService";
@@ -47,7 +51,7 @@ export default function RegisterLoanScreen() {
   const [piecesComplete, setPiecesComplete] = useState(true);
   const [adminIsOut, setAdminIsOut] = useState(false);
 
-  useEffect(() => {
+  const loadGames = useCallback(() => {
     Promise.all([
       gamesService.getCatalog(),
       attendanceService.getStatus().catch(() => null),
@@ -64,6 +68,12 @@ export default function RegisterLoanScreen() {
       })
       .finally(() => setLoadingGames(false));
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGames();
+    }, [loadGames]),
+  );
 
   useEffect(() => {
     if (routeParams?.preselectedStudentId) {
@@ -284,7 +294,10 @@ export default function RegisterLoanScreen() {
           >
             <View style={styles.gameRowInner}>
               {game.image_url ? (
-                <Image source={{ uri: game.image_url }} style={styles.gameThumb} />
+                <Image
+                  source={{ uri: game.image_url }}
+                  style={styles.gameThumb}
+                />
               ) : (
                 <View style={styles.gameThumbFallback}>
                   <MaterialCommunityIcons

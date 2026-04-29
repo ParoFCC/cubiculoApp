@@ -9,6 +9,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { gamesService } from "../../../services/gamesService";
@@ -47,8 +48,14 @@ export default function LoanHistoryScreen() {
       if (!controller.signal.aborted) {
         setLoans(data);
       }
-    } catch {
-      // keep existing list on error
+    } catch (err: any) {
+      if (!controller.signal.aborted) {
+        Toast.show({
+          type: "error",
+          text1: "Error al cargar historial",
+          text2: err?.response?.data?.detail ?? "Intenta de nuevo.",
+        });
+      }
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);

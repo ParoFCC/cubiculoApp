@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, DateTime, func, ForeignKey
+from sqlalchemy import String, Boolean, DateTime, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -14,6 +14,7 @@ class EmailVerification(Base):
     email: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     code: Mapped[str] = mapped_column(String(6), nullable=False)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    failed_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

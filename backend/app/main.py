@@ -18,6 +18,7 @@ import app.models.user  # noqa: F401
 import app.models.email_verification  # noqa: F401
 import app.models.cubiculo  # noqa: F401
 import app.models.attendance  # noqa: F401
+import app.models.revoked_token  # noqa: F401
 
 # ── Rate limiter ───────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -70,6 +71,19 @@ async def _mark_overdue_loans() -> None:
         await db.commit()
 
 
+# ── Cleanup expired revoked tokens ────────────────────────────────────────
+async def _cleanup_revoked_tokens() -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models.revoked_token import RevokedToken
+    from datetime import datetime, timezone
+    from sqlalchemy import delete
+
+    async with AsyncSessionLocal() as db:
+        now = datetime.now(timezone.utc)
+        await db.execute(delete(RevokedToken).where(RevokedToken.expires_at < now))
+        await db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Add is_super_admin column if it doesn't exist yet
@@ -79,11 +93,12 @@ async def lifespan(app: FastAPI):
             "is_super_admin BOOLEAN NOT NULL DEFAULT FALSE"
         ))
         # Bootstrap: ensure the original super-admin keeps their flag
-        await conn.execute(sa.text(
-            "UPDATE users SET is_super_admin = TRUE "
-            f"WHERE student_id = '{settings.SUPER_ADMIN_ID}' "
-            "AND is_super_admin = FALSE"
-        ))
+        await conn.execute(
+            sa.text(
+                "UPDATE users SET is_super_admin = TRUE "
+                "WHERE student_id = :sid AND is_super_admin = FALSE"
+            ).bindparams(sid=settings.SUPER_ADMIN_ID)
+        )
     # Start cron scheduler
     mexico_tz = pytz.timezone("America/Mexico_City")
     scheduler = AsyncIOScheduler()
@@ -95,6 +110,14 @@ async def lifespan(app: FastAPI):
         minute=0,
         timezone=mexico_tz,
         id="auto_close_cash",
+    )
+    scheduler.add_job(
+        _cleanup_revoked_tokens,
+        "cron",
+        hour=3,
+        minute=0,
+        timezone=mexico_tz,
+        id="cleanup_revoked_tokens",
     )
     scheduler.start()
     yield

@@ -1,0 +1,75 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy backend files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 146.190.119.145
+          username: polo
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "backend/*"
+          target: ${{ secrets.BACKEND_DEPLOY_PATH }}
+          overwrite: true
+          strip_components: 1
+
+      - name: Install dependencies and restart backend service
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 146.190.119.145
+          username: polola
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            set -e
+            cd "${{ secrets.BACKEND_DEPLOY_PATH }}"
+            if [ ! -d ".venv" ]; then python3 -m venv .venv; fi
+            source .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            alembic upgrade head
+            SERVICE_NAME="cubiculo-backend"
+            SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+            APP_DIR="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            APP_USER="polola"
+            APP_GROUP="polola"
+
+            if ! sudo systemctl list-unit-files | grep -q "^${SERVICE_NAME}\.service"; then
+              sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+            [Unit]
+            Description=Cubiculo Backend API
+            After=network.target
+
+            [Service]
+            User=${APP_USER}
+            Group=${APP_GROUP}
+            WorkingDirectory=${APP_DIR}
+            Environment=PYTHONUNBUFFERED=1
+            ExecStart=${APP_DIR}/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+            Restart=always
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+              sudo systemctl daemon-reload
+              sudo systemctl enable "${SERVICE_NAME}"
+            fi
+
+            sudo systemctl restart "${SERVICE_NAME}"
+            sudo systemctl --no-pager --full status "${SERVICE_NAME}" || true

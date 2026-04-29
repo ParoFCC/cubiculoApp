@@ -10,7 +10,7 @@ const BASE_URL =
   process.env.API_URL ??
   (typeof __DEV__ !== "undefined" && __DEV__
     ? "http://10.0.2.2:8000"
-    : "https://cubiculoapp-production.up.railway.app");
+    : "http://146.190.119.145:8000");
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,

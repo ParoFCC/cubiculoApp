@@ -25,8 +25,9 @@ jobs:
           password: ${{ secrets.CASTCARP_SSH_PASSWORD }}
           script: |
             set -e
-            sudo mkdir -p /opt/cubiculo
-            sudo chown -R cuboest:cuboest /opt/cubiculo
+            SUDOPASS="${{ secrets.CASTCARP_SUDO_PASSWORD }}"
+            echo "$SUDOPASS" | sudo -S mkdir -p /opt/cubiculo
+            echo "$SUDOPASS" | sudo -S chown -R cuboest:cuboest /opt/cubiculo
 
       - name: Deploy backend files via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -47,6 +48,7 @@ jobs:
           password: ${{ secrets.CASTCARP_SSH_PASSWORD }}
           script: |
             set -e
+            SUDOPASS="${{ secrets.CASTCARP_SUDO_PASSWORD }}"
             cd /opt/cubiculo
 
             if [ ! -d ".venv" ]; then python3 -m venv .venv; fi
@@ -61,8 +63,8 @@ jobs:
             APP_USER="cuboest"
             APP_GROUP="cuboest"
 
-            if ! sudo systemctl list-unit-files | grep -q "^${SERVICE_NAME}\.service"; then
-              sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+            if ! echo "$SUDOPASS" | sudo -S systemctl list-unit-files 2>/dev/null | grep -q "^${SERVICE_NAME}\.service"; then
+              echo "$SUDOPASS" | sudo -S tee "$SERVICE_FILE" > /dev/null <<EOF
             [Unit]
             Description=Cubiculo Backend API — castelancarpinteyro.com
             After=network.target
@@ -81,9 +83,9 @@ jobs:
             WantedBy=multi-user.target
             EOF
 
-              sudo systemctl daemon-reload
-              sudo systemctl enable "${SERVICE_NAME}"
+              echo "$SUDOPASS" | sudo -S systemctl daemon-reload
+              echo "$SUDOPASS" | sudo -S systemctl enable "${SERVICE_NAME}"
             fi
 
-            sudo systemctl restart "${SERVICE_NAME}"
-            sudo systemctl --no-pager --full status "${SERVICE_NAME}" || true
+            echo "$SUDOPASS" | sudo -S systemctl restart "${SERVICE_NAME}"
+            echo "$SUDOPASS" | sudo -S systemctl --no-pager --full status "${SERVICE_NAME}" || true

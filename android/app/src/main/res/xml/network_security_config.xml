@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <!-- Allow HTTP cleartext only to the backend IP (release APK). -->
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">146.190.119.145</domain>
+  </domain-config>
+</network-security-config>
+

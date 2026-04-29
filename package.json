@@ -8,7 +8,10 @@
     "start": "react-native start",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "backend": "cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    "backend": "cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "apk": "cd android && ./gradlew assembleRelease",
+    "apk:clean": "cd android && ./gradlew clean",
+    "apk:bundle": "cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
     "@react-native-ml-kit/text-recognition": "^2.0.0",

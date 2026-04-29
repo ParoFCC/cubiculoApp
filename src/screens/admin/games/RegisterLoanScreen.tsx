@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Switch,
+  Image,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -244,11 +245,20 @@ export default function RegisterLoanScreen() {
 
       {selectedGame && (
         <View style={styles.selectedGameBanner}>
-          <MaterialCommunityIcons
-            name="gamepad-variant"
-            size={18}
-            color={PURPLE}
-          />
+          {selectedGame.image_url ? (
+            <Image
+              source={{ uri: selectedGame.image_url }}
+              style={styles.selectedGameThumb}
+            />
+          ) : (
+            <View style={styles.selectedGameThumbFallback}>
+              <MaterialCommunityIcons
+                name="dice-multiple"
+                size={16}
+                color={PURPLE}
+              />
+            </View>
+          )}
           <Text style={styles.selectedGameBannerText}>{selectedGame.name}</Text>
           <TouchableOpacity onPress={() => setSelectedGame(null)}>
             <MaterialCommunityIcons
@@ -272,17 +282,32 @@ export default function RegisterLoanScreen() {
             ]}
             onPress={() => setSelectedGame(game)}
           >
-            <Text
-              style={[
-                styles.gameRowText,
-                selectedGame?.id === game.id && styles.gameRowTextSelected,
-              ]}
-            >
-              {game.name}{" "}
-              <Text style={styles.avail}>
-                ({game.quantity_avail} disponibles)
-              </Text>
-            </Text>
+            <View style={styles.gameRowInner}>
+              {game.image_url ? (
+                <Image source={{ uri: game.image_url }} style={styles.gameThumb} />
+              ) : (
+                <View style={styles.gameThumbFallback}>
+                  <MaterialCommunityIcons
+                    name="dice-multiple"
+                    size={18}
+                    color={PURPLE}
+                  />
+                </View>
+              )}
+              <View style={styles.gameRowBody}>
+                <Text
+                  style={[
+                    styles.gameRowText,
+                    selectedGame?.id === game.id && styles.gameRowTextSelected,
+                  ]}
+                >
+                  {game.name}
+                </Text>
+                <Text style={styles.avail}>
+                  {game.quantity_avail} disponibles
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
         ))
       )}
@@ -423,10 +448,26 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     elevation: 1,
   },
+  gameRowInner: { flexDirection: "row", alignItems: "center", gap: 12 },
+  gameThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+  },
+  gameThumbFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#EEE9FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gameRowBody: { flex: 1 },
   gameRowSelected: { borderColor: PURPLE, backgroundColor: "#EEE9FF" },
   gameRowText: { fontSize: 15, color: "#333" },
   gameRowTextSelected: { fontWeight: "700", color: PURPLE },
-  avail: { color: "#888", fontWeight: "400" },
+  avail: { color: "#888", fontWeight: "600", marginTop: 2 },
   selectedGameBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -437,6 +478,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderWidth: 1.5,
     borderColor: PURPLE,
+  },
+  selectedGameThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  selectedGameThumbFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
   },
   selectedGameBannerText: {
     flex: 1,

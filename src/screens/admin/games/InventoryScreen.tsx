@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -332,10 +332,17 @@ export default function InventoryScreen() {
             <View style={styles.card}>
               <View style={[styles.dot, { backgroundColor: dotColor }]} />
               {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={styles.gameThumb} />
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.gameThumb}
+                />
               ) : (
                 <View style={styles.gameThumbFallback}>
-                  <MaterialCommunityIcons name="dice-multiple" size={18} color={PURPLE} />
+                  <MaterialCommunityIcons
+                    name="dice-multiple"
+                    size={18}
+                    color={PURPLE}
+                  />
                 </View>
               )}
               <View style={styles.cardBody}>
@@ -491,7 +498,11 @@ export default function InventoryScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="image-outline" size={18} color="#fff" />
+                    <MaterialCommunityIcons
+                      name="image-outline"
+                      size={18}
+                      color="#fff"
+                    />
                     <Text style={styles.uploadBtnText}>Subir imagen</Text>
                   </>
                 )}
@@ -505,7 +516,10 @@ export default function InventoryScreen() {
                 keyboardType="url"
               />
               {form.image_url ? (
-                <Image source={{ uri: form.image_url }} style={styles.formPreview} />
+                <Image
+                  source={{ uri: form.image_url }}
+                  style={styles.formPreview}
+                />
               ) : null}
               <Text style={styles.label}>Instrucciones (texto)</Text>
               <TextInput

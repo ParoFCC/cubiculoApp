@@ -74,6 +74,9 @@ class CashRegister(Base):
     cubiculo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("cubiculos.id"), nullable=False, index=True)
     admin_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     opening_balance: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    withdrawals_total: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=False, default=0, server_default="0"
+    )
     closing_balance: Mapped[float | None] = mapped_column(Numeric(10, 2))
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -43,7 +43,6 @@ async def test_register_sale_with_cash_register(
     cr_resp = await client.post(
         "/cash-register/open",
         headers={"Authorization": f"Bearer {token}"},
-        json={"opening_amount": 50.0},
     )
     assert cr_resp.status_code == 201
 
@@ -114,14 +113,13 @@ async def test_close_cash_register(client: AsyncClient, admin_user: User):
     await client.post(
         "/cash-register/open",
         headers={"Authorization": f"Bearer {token}"},
-        json={"opening_amount": 100.0},
     )
 
     # Close
     close_resp = await client.post(
         "/cash-register/close",
         headers={"Authorization": f"Bearer {token}"},
-        json={"closing_amount": 105.0, "notes": "End of day"},
+        json={"closing_balance": 105.0},
     )
     assert close_resp.status_code == 200
     assert close_resp.json()["status"] == "closed"

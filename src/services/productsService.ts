@@ -50,17 +50,20 @@ export const productsService = {
     api.get<Sale[]>("/sales", { params: { from, to } }).then((r) => r.data),
 
   // Caja
-  openCashRegister: (openingBalance: number): Promise<CashRegister> =>
-    api
-      .post<CashRegister>("/cash-register/open", {
-        opening_balance: openingBalance,
-      })
-      .then((r) => r.data),
+  openCashRegister: (): Promise<CashRegister> =>
+    api.post<CashRegister>("/cash-register/open").then((r) => r.data),
 
   closeCashRegister: (closingBalance: number): Promise<CashRegister> =>
     api
       .post<CashRegister>("/cash-register/close", {
         closing_balance: closingBalance,
+      })
+      .then((r) => r.data),
+
+  withdrawCashRegister: (amount: number): Promise<CashRegister> =>
+    api
+      .post<CashRegister>("/cash-register/withdraw", {
+        amount,
       })
       .then((r) => r.data),
 

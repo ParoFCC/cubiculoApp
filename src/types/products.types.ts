@@ -39,6 +39,7 @@ export interface CashRegister {
   id: string;
   admin_id: string;
   opening_balance: number;
+  withdrawals_total?: number;
   closing_balance?: number;
   opened_at: string;
   closed_at?: string;

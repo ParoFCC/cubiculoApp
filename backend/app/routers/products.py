@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.products import (
     ProductCreate, ProductUpdate, ProductOut,
     SaleCreate, SaleOut,
-    CashOpenPayload, CashClosePayload, CashRegisterOut,
+    CashClosePayload, CashRegisterOut, CashWithdrawPayload,
 )
 from app.dependencies.auth import get_current_user
 from app.dependencies.roles import require_admin
@@ -103,12 +103,11 @@ async def list_sales(
 @router.post("/cash-register/open", response_model=CashRegisterOut,
              status_code=status.HTTP_201_CREATED)
 async def open_cash_register(
-    payload: CashOpenPayload,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
-    return await svc.open_cash_register(db, payload, admin, cubiculo_id)
+    return await svc.open_cash_register(db, admin, cubiculo_id)
 
 
 @router.post("/cash-register/close", response_model=CashRegisterOut)
@@ -119,6 +118,16 @@ async def close_cash_register(
     cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
 ):
     return await svc.close_cash_register(db, payload, cubiculo_id)
+
+
+@router.post("/cash-register/withdraw", response_model=CashRegisterOut)
+async def withdraw_cash_register(
+    payload: CashWithdrawPayload,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    return await svc.withdraw_cash_register(db, payload, cubiculo_id)
 
 
 @router.get("/cash-register/history", response_model=list[CashRegisterOut],

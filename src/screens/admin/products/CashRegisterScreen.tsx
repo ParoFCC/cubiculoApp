@@ -37,6 +37,7 @@ export default function CashRegisterScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [amount, setAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -72,18 +73,18 @@ export default function CashRegisterScreen() {
   const isOpen = status?.status === "open";
 
   const handleAction = async () => {
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed) || parsed < 0) {
-      Toast.show({
-        type: "error",
-        text1: "Monto inválido",
-        text2: "Ingresa un monto válido.",
-      });
-      return;
-    }
     setSubmitting(true);
     try {
       if (isOpen) {
+        const parsed = parseFloat(amount);
+        if (isNaN(parsed) || parsed < 0) {
+          Toast.show({
+            type: "error",
+            text1: "Monto inválido",
+            text2: "Ingresa un monto válido.",
+          });
+          return;
+        }
         await productsService.closeCashRegister(parsed);
         Toast.show({
           type: "success",
@@ -91,11 +92,11 @@ export default function CashRegisterScreen() {
           text2: `Monto de cierre: ${fmt(parsed)}`,
         });
       } else {
-        await productsService.openCashRegister(parsed);
+        await productsService.openCashRegister();
         Toast.show({
           type: "success",
           text1: "Caja abierta",
-          text2: `Monto inicial: ${fmt(parsed)}`,
+          text2: "Se usó el cierre del día anterior como apertura.",
         });
       }
       setAmount("");
@@ -114,6 +115,37 @@ export default function CashRegisterScreen() {
     }
   };
 
+  const handleWithdraw = async () => {
+    const parsed = parseFloat(withdrawAmount);
+    if (isNaN(parsed) || parsed <= 0) {
+      Toast.show({
+        type: "error",
+        text1: "Monto inválido",
+        text2: "Ingresa un retiro mayor a 0.",
+      });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await productsService.withdrawCashRegister(parsed);
+      Toast.show({
+        type: "success",
+        text1: "Retiro registrado",
+        text2: `Retiro: ${fmt(parsed)}`,
+      });
+      setWithdrawAmount("");
+      fetchData(true);
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: extractApiErrorMessage(err, "No se pudo registrar el retiro."),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -123,7 +155,8 @@ export default function CashRegisterScreen() {
   }
 
   const salesTotal = status?.sales_total ?? 0;
-  const estimated = (status?.opening_balance ?? 0) + salesTotal;
+  const withdrawalsTotal = status?.withdrawals_total ?? 0;
+  const estimated = (status?.opening_balance ?? 0) + salesTotal - withdrawalsTotal;
   const historyFiltered = history.filter((h) => h.id !== status?.id);
 
   return (
@@ -181,6 +214,13 @@ export default function CashRegisterScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Retiros</Text>
+              <Text style={[styles.statValue, { color: "#C62828" }]}>
+                -{fmt(withdrawalsTotal)}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
               <Text style={styles.statLabel}>Estimado</Text>
               <Text style={[styles.statValue, { color: "#2E7D32" }]}>
                 {fmt(estimated)}
@@ -199,17 +239,23 @@ export default function CashRegisterScreen() {
 
       {/* Action Form */}
       <View style={styles.formCard}>
-        <Text style={styles.formLabel}>
-          {isOpen ? "Monto de cierre ($)" : "Monto de apertura ($)"}
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={amount}
-          onChangeText={setAmount}
-          placeholder="0.00"
-          keyboardType="decimal-pad"
-          placeholderTextColor="#aaa"
-        />
+        {isOpen ? (
+          <>
+            <Text style={styles.formLabel}>Monto de cierre ($)</Text>
+            <TextInput
+              style={styles.input}
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+              placeholderTextColor="#aaa"
+            />
+          </>
+        ) : (
+          <Text style={styles.formHint}>
+            Al abrir caja se toma automáticamente el cierre anterior.
+          </Text>
+        )}
         <TouchableOpacity
           style={[
             styles.actionBtn,
@@ -223,10 +269,33 @@ export default function CashRegisterScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.actionBtnText}>
-              {isOpen ? "Cerrar Caja" : "Abrir Caja"}
+              {isOpen ? "Cerrar Caja" : "Abrir Caja con saldo anterior"}
             </Text>
           )}
         </TouchableOpacity>
+
+        {isOpen && (
+          <>
+            <Text style={[styles.formLabel, { marginTop: 14 }]}>
+              Registrar retiro de caja ($)
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={withdrawAmount}
+              onChangeText={setWithdrawAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+              placeholderTextColor="#aaa"
+            />
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.withdrawBtn, submitting && styles.disabled]}
+              onPress={handleWithdraw}
+              disabled={submitting}
+            >
+              <Text style={styles.actionBtnText}>Registrar retiro</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* History */}
@@ -235,7 +304,8 @@ export default function CashRegisterScreen() {
           <Text style={styles.sectionTitle}>Historial de sesiones</Text>
           {historyFiltered.map((reg) => {
             const regSalesTotal = reg.sales_total ?? 0;
-            const regEstimated = reg.opening_balance + regSalesTotal;
+            const regWithdrawals = reg.withdrawals_total ?? 0;
+            const regEstimated = reg.opening_balance + regSalesTotal - regWithdrawals;
             const diff =
               reg.closing_balance != null
                 ? reg.closing_balance - regEstimated
@@ -269,6 +339,12 @@ export default function CashRegisterScreen() {
                   <Text style={styles.historyLabel}>Ventas</Text>
                   <Text style={[styles.historyValue, { color: PURPLE }]}>
                     {fmt(regSalesTotal)}
+                  </Text>
+                </View>
+                <View style={styles.historyRow}>
+                  <Text style={styles.historyLabel}>Retiros</Text>
+                  <Text style={[styles.historyValue, { color: "#C62828" }]}>
+                    -{fmt(regWithdrawals)}
                   </Text>
                 </View>
                 {reg.closing_balance != null && (
@@ -344,6 +420,11 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 8,
   },
+  formHint: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 12,
+  },
   input: {
     borderWidth: 1.5,
     borderColor: "#ddd",
@@ -358,6 +439,7 @@ const styles = StyleSheet.create({
   actionBtn: { borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   openBtn: { backgroundColor: "#2E7D32" },
   closeBtn: { backgroundColor: "#C62828" },
+  withdrawBtn: { backgroundColor: "#6D28D9" },
   disabled: { opacity: 0.6 },
   actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   section: { marginBottom: 16 },

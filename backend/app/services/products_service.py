@@ -9,7 +9,9 @@ from app.models.products import (
     Product, Sale, SaleItem, CashRegister, CashRegisterStatus, PaymentMethod,
 )
 from app.models.user import User
-from app.schemas.products import ProductCreate, ProductUpdate, SaleCreate, CashOpenPayload, CashClosePayload
+from app.schemas.products import (
+    ProductCreate, ProductUpdate, SaleCreate, CashClosePayload, CashWithdrawPayload,
+)
 import app.services.users_service as users_svc
 
 
@@ -188,7 +190,7 @@ async def list_sales(
 # ── Cash Register ─────────────────────────────────────────────────────────
 
 async def open_cash_register(
-    db: AsyncSession, payload: CashOpenPayload, admin: User, cubiculo_id: uuid.UUID
+    db: AsyncSession, admin: User, cubiculo_id: uuid.UUID
 ) -> CashRegister:
     existing = (
         await db.execute(
@@ -201,7 +203,26 @@ async def open_cash_register(
     if existing:
         raise HTTPException(status_code=400, detail="Ya hay una caja abierta")
 
-    cash = CashRegister(cubiculo_id=cubiculo_id, admin_id=admin.id, opening_balance=payload.opening_balance)
+    last_closed = (
+        await db.execute(
+            select(CashRegister)
+            .where(
+                CashRegister.cubiculo_id == cubiculo_id,
+                CashRegister.status == CashRegisterStatus.closed,
+            )
+            .order_by(CashRegister.closed_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    opening_balance = float(last_closed.closing_balance) if (
+        last_closed and last_closed.closing_balance is not None
+    ) else 0.0
+    cash = CashRegister(
+        cubiculo_id=cubiculo_id,
+        admin_id=admin.id,
+        opening_balance=opening_balance,
+        withdrawals_total=0,
+    )
     db.add(cash)
     await db.commit()
     await db.refresh(cash)
@@ -229,6 +250,25 @@ async def close_cash_register(
     return cash
 
 
+async def withdraw_cash_register(
+    db: AsyncSession, payload: CashWithdrawPayload, cubiculo_id: uuid.UUID
+) -> CashRegister:
+    result = await db.execute(
+        select(CashRegister).where(
+            CashRegister.cubiculo_id == cubiculo_id,
+            CashRegister.status == CashRegisterStatus.open,
+        )
+    )
+    cash = result.scalar_one_or_none()
+    if not cash:
+        raise HTTPException(status_code=404, detail="No hay caja abierta")
+
+    cash.withdrawals_total = round(float(cash.withdrawals_total or 0) + payload.amount, 2)
+    await db.commit()
+    await db.refresh(cash)
+    return cash
+
+
 async def get_current_cash_register(db: AsyncSession, cubiculo_id: uuid.UUID) -> CashRegister:
     result = await db.execute(
         select(CashRegister)
@@ -244,6 +284,7 @@ async def get_current_cash_register(db: AsyncSession, cubiculo_id: uuid.UUID) ->
         .where(Sale.cash_register_id == cash.id)
     )
     cash.sales_total = float(total_result.scalar())
+    cash.withdrawals_total = float(cash.withdrawals_total or 0)
     return cash
 
 
@@ -265,4 +306,5 @@ async def get_cash_register_history(db: AsyncSession, cubiculo_id: uuid.UUID) ->
     totals_map = {row.cash_register_id: float(row.sales_total) for row in totals_result}
     for reg in registers:
         reg.sales_total = totals_map.get(reg.id, 0.0)
+        reg.withdrawals_total = float(reg.withdrawals_total or 0)
     return registers

@@ -125,14 +125,14 @@ class SaleOut(BaseModel):
 
 # ── Cash Register ─────────────────────────────────────────────────────────
 
-class CashOpenPayload(BaseModel):
-    opening_balance: float
+class CashWithdrawPayload(BaseModel):
+    amount: float
 
-    @field_validator("opening_balance")
+    @field_validator("amount")
     @classmethod
-    def balance_non_negative(cls, v: float) -> float:
-        if v < 0:
-            raise ValueError("opening_balance no puede ser negativo")
+    def amount_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("amount debe ser mayor a 0")
         return v
 
 
@@ -151,6 +151,7 @@ class CashRegisterOut(BaseModel):
     id: uuid.UUID
     admin_id: uuid.UUID
     opening_balance: float
+    withdrawals_total: float = 0.0
     closing_balance: float | None
     status: str
     opened_at: datetime

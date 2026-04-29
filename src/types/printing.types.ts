@@ -23,4 +23,5 @@ export interface PrintHistoryItem {
 export interface RegisterPrintPayload {
   student_id: string;
   pages: number;
+  kind?: "bw" | "color_text" | "color_images_half";
 }

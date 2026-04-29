@@ -17,9 +17,10 @@ class UserCreate(BaseModel):
     @field_validator("email")
     @classmethod
     def email_domain(cls, v: str) -> str:
-        if not v.lower().endswith("@alm.buap.mx"):
-            raise ValueError("Solo se permiten correos @alm.buap.mx")
-        return v.lower()
+        email = v.lower()
+        if not (email.endswith("@alm.buap.mx") or email.endswith("@alumno.buap.mx")):
+            raise ValueError("Solo se permiten correos @alm.buap.mx o @alumno.buap.mx")
+        return email
 
     @field_validator("password")
     @classmethod

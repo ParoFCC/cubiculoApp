@@ -70,10 +70,10 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
     email = payload.email.lower()
 
     # Domain check
-    if not email.endswith("@alm.buap.mx"):
+    if not (email.endswith("@alm.buap.mx") or email.endswith("@alumno.buap.mx")):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Solo se permiten correos @alm.buap.mx",
+            detail="Solo se permiten correos @alm.buap.mx o @alumno.buap.mx",
         )
 
     # Validate student_id format for student role: 4-digit year followed by 5 digits

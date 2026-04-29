@@ -142,7 +142,7 @@ export default function PrintBalanceScreen() {
         <Text style={styles.infoBody}>
           Cada período tienes{" "}
           <Text style={styles.bold}>10 impresiones gratuitas</Text>. Al
-          agotarlas, cada página adicional tiene un costo de $0.50.
+          agotarlas, cada página adicional tiene un costo según el tipo de impresión.
         </Text>
       </View>
     </ScrollView>

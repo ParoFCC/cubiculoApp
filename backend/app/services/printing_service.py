@@ -1,5 +1,5 @@
 import uuid
-import re
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException
@@ -16,13 +16,9 @@ def normalize_student_identifier(student_identifier: str) -> str:
 
 
 def resolve_period(student: User | None, student_identifier: str) -> str:
-    if student and student.period:
-        return student.period
-    # Matricula format: 4-digit year followed by 5 digits (e.g. 202612345)
-    match = re.match(r"^(\d{4})\d{5}$", student_identifier)
-    if match:
-        return f"{match.group(1)}-1"
-    return "sin-periodo"
+    # Free prints are granted per CALENDAR YEAR (e.g. 2026 quota resets in 2027),
+    # independent of the student's matricula or stored academic period.
+    return str(datetime.now(timezone.utc).year)
 
 
 async def get_or_create_balance(
@@ -80,7 +76,13 @@ async def register_print(
 
     free_used = min(balance.free_remaining, payload.pages)
     paid_pages = payload.pages - free_used
-    cost = round(paid_pages * (payload.unit_cost or settings.PAID_PRINT_PRICE), 2)
+    # Fixed prices by print kind (do not trust client-provided pricing).
+    unit_cost = {
+        "bw": 0.50,
+        "color_text": 1.00,
+        "color_images_half": 2.50,
+    }[payload.kind.value]
+    cost = round(paid_pages * unit_cost, 2)
     print_type = PrintType.paid if paid_pages > 0 else PrintType.free
 
     balance.free_remaining -= free_used

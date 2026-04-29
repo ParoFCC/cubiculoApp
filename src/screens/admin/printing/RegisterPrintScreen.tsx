@@ -21,6 +21,14 @@ import { PrintBalance } from "../../../types/printing.types";
 import QRScannerModal from "../../../components/QRScannerModal";
 import IDScannerModal from "../../../components/IDScannerModal";
 
+type PrintKind = "bw" | "color_text" | "color_images_half";
+
+function unitCost(kind: PrintKind): number {
+  if (kind === "bw") return 0.5;
+  if (kind === "color_text") return 1.0;
+  return 2.5;
+}
+
 export default function RegisterPrintScreen() {
   const navigation = useNavigation<any>();
   const routeParams = useRoute<any>().params as
@@ -36,6 +44,7 @@ export default function RegisterPrintScreen() {
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showIDScanner, setShowIDScanner] = useState(false);
+  const [kind, setKind] = useState<PrintKind>("bw");
 
   const lookupStudent = async (id: string) => {
     const normalizedId = id.trim().toLowerCase();
@@ -118,6 +127,7 @@ export default function RegisterPrintScreen() {
       const result = await printingService.registerPrint({
         student_id: registeredStudentId,
         pages: pagesNum,
+        kind,
       });
       navigation.navigate("Receipt", {
         type: "print",
@@ -147,7 +157,7 @@ export default function RegisterPrintScreen() {
   const freeRemaining = balance?.free_remaining ?? 0;
   const freeUsedPreview = Math.min(freeRemaining, Math.max(previewPages, 0));
   const paidPagesPreview = Math.max(previewPages - freeUsedPreview, 0);
-  const estimatedTotal = paidPagesPreview * 0.5;
+  const estimatedTotal = paidPagesPreview * unitCost(kind);
 
   return (
     <KeyboardAvoidingView
@@ -309,10 +319,54 @@ export default function RegisterPrintScreen() {
           editable={!loading}
         />
 
+        <Text style={styles.label}>Tipo de impresión</Text>
+        <View style={styles.kindRow}>
+          <TouchableOpacity
+            style={[styles.kindBtn, kind === "bw" && styles.kindBtnActive]}
+            onPress={() => setKind("bw")}
+          >
+            <Text style={[styles.kindText, kind === "bw" && styles.kindTextActive]}>
+              B/N (50¢)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.kindBtn,
+              kind === "color_text" && styles.kindBtnActive,
+            ]}
+            onPress={() => setKind("color_text")}
+          >
+            <Text
+              style={[
+                styles.kindText,
+                kind === "color_text" && styles.kindTextActive,
+              ]}
+            >
+              Texto color ($1)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.kindBtn,
+              kind === "color_images_half" && styles.kindBtnActive,
+            ]}
+            onPress={() => setKind("color_images_half")}
+          >
+            <Text
+              style={[
+                styles.kindText,
+                kind === "color_images_half" && styles.kindTextActive,
+              ]}
+            >
+              Imágenes ≤1/2 hoja ($2.50)
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.hint}>
           <Text style={styles.hintText}>
             💡 Primero se descuentan las páginas gratuitas. El excedente se
-            cobra a $0.50/página.
+            cobra según el tipo de impresión seleccionado.
           </Text>
         </View>
 
@@ -497,6 +551,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   hintText: { fontSize: 13, color: PURPLE, lineHeight: 18 },
+  kindRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  kindBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  kindBtnActive: { borderColor: PURPLE, backgroundColor: "#EEE9FF" },
+  kindText: { fontSize: 12, fontWeight: "700", color: "#374151", textAlign: "center" },
+  kindTextActive: { color: PURPLE },
   previewCard: {
     backgroundColor: "#fff",
     borderRadius: 12,

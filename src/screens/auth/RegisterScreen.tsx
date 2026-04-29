@@ -162,12 +162,12 @@ export default function RegisterScreen() {
     const resolvedEmail = emailIsAuto ? autoEmail : email;
     if (
       !resolvedEmail ||
-      !resolvedEmail.toLowerCase().endsWith("@alm.buap.mx")
+      !/(?:@alm\.buap\.mx|@alumno\.buap\.mx)$/i.test(resolvedEmail.trim())
     ) {
       Toast.show({
         type: "error",
         text1: "Correo inválido",
-        text2: "Solo se permiten correos @alm.buap.mx",
+        text2: "Solo se permiten correos @alm.buap.mx o @alumno.buap.mx",
       });
       return;
     }
@@ -323,7 +323,7 @@ export default function RegisterScreen() {
             </Text>
           )}
 
-          {/* ── Email (iniciales de apellidos + matrícula @alm.buap.mx) ── */}
+          {/* ── Email (iniciales de apellidos + matrícula @alm.buap.mx / @alumno.buap.mx) ── */}
           {/* ── Section: Información de acceso ── */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionLine} />
@@ -350,7 +350,7 @@ export default function RegisterScreen() {
                       : prefix.length === 0
                       ? "??"
                       : prefix
-                  }${form.matricula || "matricula"}@alm.buap.mx`}
+                  }${form.matricula || "matricula"}@alm.buap.mx (o @alumno.buap.mx)`}
                 </Text>
               </Text>
             </View>

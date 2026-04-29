@@ -1,15 +1,22 @@
 import uuid
 from datetime import datetime
+import enum
 from pydantic import BaseModel, field_validator
 from app.models.printing import PrintType
 
 
 # ── Request ───────────────────────────────────────────────────────────────
 
+class PrintJobKind(str, enum.Enum):
+    bw = "bw"  # 50¢ B/N
+    color_text = "color_text"  # $1 texto a color
+    color_images_half = "color_images_half"  # $2.50 imágenes media hoja o menos
+
+
 class PrintJobCreate(BaseModel):
     student_id: str
     pages: int
-    unit_cost: float = 0.50
+    kind: PrintJobKind = PrintJobKind.bw
 
     @field_validator("student_id")
     @classmethod
@@ -24,13 +31,6 @@ class PrintJobCreate(BaseModel):
     def pages_positive(cls, v: int) -> int:
         if v < 1:
             raise ValueError("pages debe ser al menos 1")
-        return v
-
-    @field_validator("unit_cost")
-    @classmethod
-    def cost_positive(cls, v: float) -> float:
-        if v <= 0:
-            raise ValueError("unit_cost debe ser mayor a 0")
         return v
 
 

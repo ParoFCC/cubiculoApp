@@ -137,7 +137,7 @@ export default function ForgotPasswordScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholder="matricula@alm.buap.mx"
+                placeholder="matricula@alm.buap.mx o matricula@alumno.buap.mx"
                 placeholderTextColor="#aaa"
                 editable={!loading}
               />

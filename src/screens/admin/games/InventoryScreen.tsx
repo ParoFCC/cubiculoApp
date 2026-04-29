@@ -13,6 +13,7 @@ import {
   ScrollView,
   Share,
   Alert,
+  Image,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useNavigation } from "@react-navigation/native";
@@ -32,6 +33,7 @@ interface GameForm {
   description: string;
   instructions: string;
   instructions_url: string;
+  image_url: string;
   quantity_total: string;
 }
 
@@ -49,6 +51,7 @@ export default function InventoryScreen() {
     description: "",
     instructions: "",
     instructions_url: "",
+    image_url: "",
     quantity_total: "1",
   });
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -89,6 +92,7 @@ export default function InventoryScreen() {
       description: "",
       instructions: "",
       instructions_url: "",
+      image_url: "",
       quantity_total: "1",
     });
     setUploading(false);
@@ -102,6 +106,7 @@ export default function InventoryScreen() {
       description: game.description ?? "",
       instructions: game.instructions ?? "",
       instructions_url: game.instructions_url ?? "",
+      image_url: game.image_url ?? "",
       quantity_total: String(game.quantity_total),
     });
     setUploading(false);
@@ -169,6 +174,33 @@ export default function InventoryScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      const result = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.images],
+        copyTo: "cachesDirectory",
+      });
+      setUploading(true);
+      const url = await uploadService.uploadFile(
+        result.fileCopyUri ?? result.uri,
+        result.name ?? "image",
+        result.type ?? "image/*",
+      );
+      setForm((f) => ({ ...f, image_url: url }));
+      Toast.show({ type: "success", text1: "Imagen subida correctamente" });
+    } catch (err: any) {
+      if (!DocumentPicker.isCancel(err)) {
+        Toast.show({
+          type: "error",
+          text1: "Error al subir la imagen",
+          text2: extractApiErrorMessage(err, "No se pudo subir la imagen."),
+        });
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) {
       Toast.show({ type: "error", text1: "El nombre es obligatorio" });
@@ -188,6 +220,7 @@ export default function InventoryScreen() {
           instructions: form.instructions.trim() || "",
           instructions_url: form.instructions_url.trim() || null,
           quantity_total: qty,
+          image_url: form.image_url.trim() || undefined,
         });
         Toast.show({
           type: "success",
@@ -199,6 +232,7 @@ export default function InventoryScreen() {
           description: form.description.trim() || "",
           instructions: form.instructions.trim() || "",
           instructions_url: form.instructions_url.trim() || undefined,
+          image_url: form.image_url.trim() || undefined,
           quantity_total: qty,
           quantity_avail: qty,
         });
@@ -297,6 +331,13 @@ export default function InventoryScreen() {
           return (
             <View style={styles.card}>
               <View style={[styles.dot, { backgroundColor: dotColor }]} />
+              {item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={styles.gameThumb} />
+              ) : (
+                <View style={styles.gameThumbFallback}>
+                  <MaterialCommunityIcons name="dice-multiple" size={18} color={PURPLE} />
+                </View>
+              )}
               <View style={styles.cardBody}>
                 <Text style={styles.name}>{item.name}</Text>
                 <Text style={styles.sub}>
@@ -440,6 +481,32 @@ export default function InventoryScreen() {
                 value={form.description}
                 onChangeText={(t) => setForm((f) => ({ ...f, description: t }))}
               />
+              <Text style={styles.label}>Imagen del juego</Text>
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={handlePickImage}
+                disabled={uploading || saving}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="image-outline" size={18} color="#fff" />
+                    <Text style={styles.uploadBtnText}>Subir imagen</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="https://... (imagen)"
+                value={form.image_url}
+                onChangeText={(t) => setForm((f) => ({ ...f, image_url: t }))}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+              {form.image_url ? (
+                <Image source={{ uri: form.image_url }} style={styles.formPreview} />
+              ) : null}
               <Text style={styles.label}>Instrucciones (texto)</Text>
               <TextInput
                 style={[styles.input, { height: 80, textAlignVertical: "top" }]}
@@ -574,6 +641,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   dot: { width: 10, height: 10, borderRadius: 5 },
+  gameThumb: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  gameThumbFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: PURPLE_LIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cardBody: { flex: 1 },
   name: { fontSize: 15, fontWeight: "700", color: "#1a1a2e" },
   sub: { fontSize: 12, color: "#888", marginTop: 3 },
@@ -631,6 +712,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1a1a2e",
     backgroundColor: "#f9fafb",
+  },
+  formPreview: {
+    width: "100%",
+    height: 140,
+    borderRadius: 10,
+    marginTop: 8,
+    backgroundColor: "#f3f4f6",
   },
   modalActions: { flexDirection: "row", gap: 12, marginTop: 20 },
   cancelBtn: {

@@ -4,7 +4,7 @@ export interface Game {
   description: string;
   instructions: string;
   instructions_url?: string | null;
-  image_url?: string;
+  image_url?: string | null;
   quantity_total: number;
   quantity_avail: number;
   is_active: boolean;

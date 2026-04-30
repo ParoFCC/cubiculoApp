@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
   <!--
-    All production traffic uses HTTPS (cubiculo-api.castelancarpinteyro.com).
-    Cleartext HTTP is only allowed to localhost / 10.0.2.2 so Metro bundler
-    works in the Android emulator during development.
+    Cleartext HTTP allowed only for:
+    - 10.0.2.2 / localhost  → Metro bundler in the Android emulator
+    All production traffic uses HTTPS.
   -->
   <domain-config cleartextTrafficPermitted="true">
     <domain includeSubdomains="false">localhost</domain>

@@ -4,22 +4,26 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { storage } from "../utils/storage";
+import { getActiveServer } from "../store/useServerStore";
 
-// Use API_URL env var if set (react-native-config / .env).
-// Falls back to production URL in all builds since the backend is hosted remotely.
-// To point at a local backend on the Android emulator set API_URL=http://10.0.2.2:8000
-// in a .env file (requires react-native-config).
-export const BASE_URL: string =
-  process.env.API_URL ?? "https://cubiculo-api.castelancarpinteyro.com";
+// BASE_URL is now dynamic — read from useServerStore at request time.
+// This export stays for components that only need the current value at render.
+export function getBaseUrl(): string {
+  return getActiveServer().url;
+}
+/** @deprecated use getBaseUrl() — kept for existing imports */
+export const BASE_URL: string = getBaseUrl();
 
 const api: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
 
 // ── Request interceptor: attach access token + cubiculo id ──────────────────
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  // Dynamically set baseURL so server toggling works without restarting the app
+  config.baseURL = getActiveServer().url;
+
   const token = storage.getAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -71,12 +75,29 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Network error (no response) → show offline banner
-    if (!error.response) {
+    // Network error → only flag offline when there is truly no HTTP response
+    // AND the error code suggests connectivity (not SSL/TLS/DNS/timeout on a
+    // reachable server). Axios sets error.code for network-level failures:
+    //   ERR_NETWORK          → no route to host
+    //   ECONNABORTED         → timeout
+    //   ERR_BAD_RESPONSE     → bad TLS / parse error (server reachable)
+    // We only show the banner for ERR_NETWORK; everything else (timeout, TLS,
+    // DNS, 4xx, 5xx) still has a response or a specific code we skip.
+    if (!error.response && error.code === "ERR_NETWORK") {
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { useNetworkStore } = require("../store/useNetworkStore");
-        useNetworkStore.getState().setOffline(true);
+        useNetworkStore.getState().setOffline(true, error.code);
+      } catch {
+        /* ignore */
+      }
+    }
+    // Any error that DID reach the server clears the offline flag
+    if (error.response) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useNetworkStore } = require("../store/useNetworkStore");
+        useNetworkStore.getState().setOffline(false);
       } catch {
         /* ignore */
       }
@@ -104,9 +125,10 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = storage.getRefreshToken();
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
+        const { data } = await axios.post(
+          `${getActiveServer().url}/auth/refresh`,
+          { refresh_token: refreshToken },
+        );
         storage.setAccessToken(data.access_token);
         processQueue(null, data.access_token);
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`;

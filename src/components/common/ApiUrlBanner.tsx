@@ -1,6 +1,7 @@
 /**
- * API URL indicator — visible in all builds so users can confirm which server they're hitting.
- * Tap to copy the URL and show an alert.
+ * API server indicator — visible in all builds.
+ * Tap  → Alert with current URL (copies to clipboard).
+ * Long-press → choose between available servers; change applies immediately.
  */
 import React from "react";
 import {
@@ -10,25 +11,45 @@ import {
   Clipboard,
   Alert,
 } from "react-native";
-import { BASE_URL } from "../../services/api";
+import { useServerStore, SERVERS } from "../../store/useServerStore";
 
 export function ApiUrlBanner() {
-  const isProd = BASE_URL.includes("castelancarpinteyro");
+  const { serverId, setServer } = useServerStore();
+  const server = SERVERS.find((s) => s.id === serverId) ?? SERVERS[0];
 
   const handlePress = () => {
-    Clipboard.setString(BASE_URL);
-    Alert.alert("API URL", BASE_URL);
+    Clipboard.setString(server.url);
+    Alert.alert("API URL", `${server.label}\n${server.url}\n\nCopiado al portapapeles.`);
+  };
+
+  const handleLongPress = () => {
+    const options = SERVERS.map((s) => ({
+      text: `${s.id === serverId ? "✓ " : ""}${s.label} — ${s.url}`,
+      onPress: () => {
+        setServer(s.id);
+        Alert.alert("Servidor cambiado", `Ahora apuntando a:\n${s.url}`);
+      },
+    }));
+    Alert.alert(
+      "Seleccionar servidor",
+      "El cambio aplica de inmediato sin reiniciar la app.",
+      [...options, { text: "Cancelar", style: "cancel" as const }],
+    );
   };
 
   return (
     <TouchableOpacity
-      style={[styles.banner, isProd ? styles.bannerProd : styles.bannerLocal]}
+      style={[styles.banner, { backgroundColor: server.color }]}
       onPress={handlePress}
+      onLongPress={handleLongPress}
       activeOpacity={0.8}
+      delayLongPress={600}
     >
-      <Text style={styles.label}>{isProd ? "🟢 PROD" : "🟡 LOCAL"}</Text>
-      <Text style={styles.url} numberOfLines={1}>
-        {BASE_URL}
+      <Text style={[styles.label, { color: server.textColor }]}>
+        {server.label}
+      </Text>
+      <Text style={[styles.url, { color: server.textColor }]} numberOfLines={1}>
+        {server.url}
       </Text>
     </TouchableOpacity>
   );
@@ -42,15 +63,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     gap: 8,
   },
-  bannerProd: { backgroundColor: "#14532d" },
-  bannerLocal: { backgroundColor: "#78350f" },
   label: {
-    color: "#fff",
     fontWeight: "700",
     fontSize: 11,
   },
   url: {
-    color: "#d1fae5",
     fontSize: 10,
     flex: 1,
   },

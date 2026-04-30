@@ -1,5 +1,11 @@
 import React from "react";
-import { Text, StyleSheet, Animated, TouchableOpacity, Alert } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNetworkStore } from "../../store/useNetworkStore";
 
@@ -25,7 +31,9 @@ export function OfflineBanner() {
         onPress={() =>
           Alert.alert(
             "Sin conexión",
-            `No se pudo conectar al servidor.\nCódigo: ${lastError ?? "desconocido"}\nServidor: ${require("../../services/api").BASE_URL}`,
+            `No se pudo conectar al servidor.\nCódigo: ${
+              lastError ?? "desconocido"
+            }\nServidor: ${require("../../services/api").BASE_URL}`,
           )
         }
         activeOpacity={0.8}

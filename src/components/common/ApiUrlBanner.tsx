@@ -19,7 +19,10 @@ export function ApiUrlBanner() {
 
   const handlePress = () => {
     Clipboard.setString(server.url);
-    Alert.alert("API URL", `${server.label}\n${server.url}\n\nCopiado al portapapeles.`);
+    Alert.alert(
+      "API URL",
+      `${server.label}\n${server.url}\n\nCopiado al portapapeles.`,
+    );
   };
 
   const handleLongPress = () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,10 @@ import {
   useRoute,
   useFocusEffect,
 } from "@react-navigation/native";
+import type {
+  AdminHomeNavigationProp,
+  RegisterLoanRouteProp,
+} from "../../../navigation/types";
 import { gamesService } from "../../../services/gamesService";
 import { usersService } from "../../../services/usersService";
 import { attendanceService } from "../../../services/attendanceService";
@@ -27,14 +31,8 @@ import IDScannerModal from "../../../components/IDScannerModal";
 import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RegisterLoanScreen() {
-  const navigation = useNavigation<any>();
-  const routeParams = useRoute<any>().params as
-    | {
-        preselectedGame?: Game;
-        game_id?: string;
-        preselectedStudentId?: string;
-      }
-    | undefined;
+  const navigation = useNavigation<AdminHomeNavigationProp>();
+  const routeParams = useRoute<RegisterLoanRouteProp>().params;
 
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(

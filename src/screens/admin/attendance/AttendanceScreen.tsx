@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
+import type { AdminAttendanceNavigationProp } from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Toast from "react-native-toast-message";
@@ -28,7 +29,7 @@ const RED = "#dc2626";
 const RED_LIGHT = "#fee2e2";
 
 export default function AttendanceScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminAttendanceNavigationProp>();
   const user = useAuthStore((s) => s.user);
 
   const [statusData, setStatusData] = useState<AttendanceStatus | null>(null);

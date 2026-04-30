@@ -13,13 +13,14 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
+import type { AuthNavigationProp } from "../../navigation/types";
 import { authService } from "../../services/authService";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
 const PURPLE = "#5C35D9";
 
 export default function ForgotPasswordScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AuthNavigationProp>();
   const [step, setStep] = React.useState<1 | 2>(1);
   const [email, setEmail] = React.useState("");
   const [pin, setPin] = React.useState("");

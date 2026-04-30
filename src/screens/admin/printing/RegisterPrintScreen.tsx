@@ -11,6 +11,10 @@ import {
   Platform,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import type {
+  AdminHomeNavigationProp,
+  RegisterPrintRouteProp,
+} from "../../../navigation/types";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { printingService } from "../../../services/printingService";
@@ -30,10 +34,8 @@ function unitCost(kind: PrintKind): number {
 }
 
 export default function RegisterPrintScreen() {
-  const navigation = useNavigation<any>();
-  const routeParams = useRoute<any>().params as
-    | { preselectedStudentId?: string }
-    | undefined;
+  const navigation = useNavigation<AdminHomeNavigationProp>();
+  const routeParams = useRoute<RegisterPrintRouteProp>().params;
   const [studentId, setStudentId] = useState("");
   const [pages, setPages] = useState("");
   const [loading, setLoading] = useState(false);
@@ -325,7 +327,9 @@ export default function RegisterPrintScreen() {
             style={[styles.kindBtn, kind === "bw" && styles.kindBtnActive]}
             onPress={() => setKind("bw")}
           >
-            <Text style={[styles.kindText, kind === "bw" && styles.kindTextActive]}>
+            <Text
+              style={[styles.kindText, kind === "bw" && styles.kindTextActive]}
+            >
               B/N (50¢)
             </Text>
           </TouchableOpacity>
@@ -564,7 +568,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   kindBtnActive: { borderColor: PURPLE, backgroundColor: "#EEE9FF" },
-  kindText: { fontSize: 12, fontWeight: "700", color: "#374151", textAlign: "center" },
+  kindText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
+    textAlign: "center",
+  },
   kindTextActive: { color: PURPLE },
   previewCard: {
     backgroundColor: "#fff",

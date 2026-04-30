@@ -13,6 +13,7 @@ import {
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
+import type { AuthNavigationProp } from "../../navigation/types";
 import { authService } from "../../services/authService";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
@@ -46,7 +47,7 @@ type Field =
   | "confirmPassword";
 
 export default function RegisterScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AuthNavigationProp>();
   const [form, setForm] = React.useState<Record<Field, string>>({
     nombres: "",
     apPaterno: "",
@@ -184,6 +185,22 @@ export default function RegisterScreen() {
         type: "error",
         text1: "Contraseña débil",
         text2: "La contraseña debe tener al menos 8 caracteres.",
+      });
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      Toast.show({
+        type: "error",
+        text1: "Contraseña débil",
+        text2: "Incluye al menos un número.",
+      });
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      Toast.show({
+        type: "error",
+        text1: "Contraseña débil",
+        text2: "Incluye al menos una letra mayúscula.",
       });
       return;
     }
@@ -350,7 +367,9 @@ export default function RegisterScreen() {
                       : prefix.length === 0
                       ? "??"
                       : prefix
-                  }${form.matricula || "matricula"}@alm.buap.mx (o @alumno.buap.mx)`}
+                  }${
+                    form.matricula || "matricula"
+                  }@alm.buap.mx (o @alumno.buap.mx)`}
                 </Text>
               </Text>
             </View>

@@ -40,9 +40,13 @@ import AttendanceHistoryScreen from "../screens/admin/attendance/AttendanceHisto
 
 // Admin — QR Codes
 import QrCodesScreen from "../screens/admin/qrcodes/QrCodesScreen";
+import type {
+  AdminHomeStackParamList,
+  AdminAttendanceStackParamList,
+} from "./types";
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<AdminHomeStackParamList>();
 
 const PURPLE = "#5C35D9";
 
@@ -239,19 +243,20 @@ function HomeStack() {
 }
 
 function AttendanceAdminStack() {
+  const AttStack = createNativeStackNavigator<AdminAttendanceStackParamList>();
   return (
-    <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen
+    <AttStack.Navigator screenOptions={stackScreenOptions}>
+      <AttStack.Screen
         name="Attendance"
         component={AttendanceScreen}
         options={{ title: "Asistencia" }}
       />
-      <Stack.Screen
+      <AttStack.Screen
         name="AttendanceHistory"
         component={AttendanceHistoryScreen}
         options={{ title: "Historial" }}
       />
-    </Stack.Navigator>
+    </AttStack.Navigator>
   );
 }
 

@@ -1,6 +1,9 @@
 import uuid
+import csv
+import io
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -96,6 +99,45 @@ async def list_sales(
 ):
     sales = await svc.list_sales(db, cubiculo_id, from_date, to_date, skip=skip, limit=limit)
     return [SaleOut.from_orm_with_names(item) for item in sales]
+
+
+@router.get("/sales/export/csv", dependencies=[Depends(require_admin)])
+async def export_sales_csv(
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    """Export all sales history as a CSV file."""
+    sales = await svc.list_sales(db, cubiculo_id, None, None, skip=0, limit=100_000)
+    sale_outs = [SaleOut.from_orm_with_names(s) for s in sales]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "fecha", "estudiante", "matricula", "admin",
+        "total", "metodo_pago", "productos",
+    ])
+    for s in sale_outs:
+        productos = "; ".join(
+            f"{i.product_name or i.product_id} x{i.quantity} ${i.unit_price:.2f}"
+            for i in (s.items or [])
+        )
+        writer.writerow([
+            str(s.id),
+            s.sold_at.strftime("%Y-%m-%d %H:%M") if s.sold_at else "",
+            s.student_name or "",
+            s.student_identifier or "",
+            s.admin_name or "",
+            f"{s.total:.2f}",
+            s.payment_method,
+            productos,
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ventas.csv"},
+    )
 
 
 # ── Cash Register ──────────────────────────────────────────────────────────

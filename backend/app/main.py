@@ -11,7 +11,8 @@ import sqlalchemy as sa
 
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, users, games, printing, products, cubiculos, upload, attendance, search
+from app.routers import auth, users, games, printing, products, cubiculos, upload, attendance, search, health
+from app.services.upload_service import configure_cloudinary
 
 # Ensure all models are imported so SQLAlchemy can create their tables
 import app.models.user  # noqa: F401
@@ -100,6 +101,7 @@ async def lifespan(app: FastAPI):
             ).bindparams(sid=settings.SUPER_ADMIN_ID)
         )
     # Start cron scheduler
+    configure_cloudinary()
     mexico_tz = pytz.timezone("America/Mexico_City")
     scheduler = AsyncIOScheduler()
     scheduler.add_job(_mark_overdue_loans, "interval", hours=1, id="mark_overdue")
@@ -152,8 +154,4 @@ app.include_router(products.router, tags=["products"])
 app.include_router(upload.router, prefix="/upload", tags=["upload"])
 app.include_router(attendance.router)
 app.include_router(search.router)
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+app.include_router(health.router)

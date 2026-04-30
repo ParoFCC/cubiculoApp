@@ -46,6 +46,11 @@ export const productsService = {
   getSales: (): Promise<Sale[]> =>
     api.get<Sale[]>("/sales").then((r) => r.data),
 
+  exportSalesCSV: (): Promise<string> =>
+    api
+      .get("/sales/export/csv", { responseType: "text" })
+      .then((r) => r.data as string),
+
   getSalesReport: (from: string, to: string): Promise<Sale[]> =>
     api.get<Sale[]>("/sales", { params: { from, to } }).then((r) => r.data),
 

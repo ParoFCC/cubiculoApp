@@ -12,11 +12,12 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
+import type { AuthNavigationProp } from "../../navigation/types";
 import { useAuthStore } from "../../store/useAuthStore";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
 export default function LoginScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AuthNavigationProp>();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Share,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { format } from "date-fns";
@@ -35,7 +36,19 @@ export default function LoanHistoryScreen() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "returned" | "overdue"
   >("all");
+  const [exporting, setExporting] = React.useState(false);
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const csv = await gamesService.exportLoansCSV();
+      await Share.share({ message: csv, title: "prestamos.csv" });
+    } catch {
+      Toast.show({ type: "error", text1: "Error al exportar" });
+    } finally {
+      setExporting(false);
+    }
+  };
   const abortRef = useRef<AbortController | null>(null);
 
   const loadLoans = useCallback(async (quiet = false) => {
@@ -98,7 +111,7 @@ export default function LoanHistoryScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Filter tabs */}
+      {/* Filter tabs + export button */}
       <View style={styles.filterRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
@@ -119,6 +132,17 @@ export default function LoanHistoryScreen() {
             </Text>
           </TouchableOpacity>
         ))}
+        <TouchableOpacity
+          style={styles.exportBtn}
+          onPress={handleExport}
+          disabled={exporting}
+        >
+          <MaterialCommunityIcons
+            name={exporting ? "loading" : "file-export-outline"}
+            size={18}
+            color={PURPLE}
+          />
+        </TouchableOpacity>
       </View>
       <FlatList
         data={filtered}
@@ -230,6 +254,15 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: PURPLE, borderColor: PURPLE },
   filterChipText: { fontSize: 13, color: "#555", fontWeight: "600" },
   filterChipTextActive: { color: "#fff" },
+  exportBtn: {
+    marginLeft: "auto" as any,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#EEE9FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   list: { padding: 16, gap: 10 },
   emptyWrap: { alignItems: "center", marginTop: 48, gap: 12 },
   empty: { textAlign: "center", color: "#9ca3af", fontSize: 14 },

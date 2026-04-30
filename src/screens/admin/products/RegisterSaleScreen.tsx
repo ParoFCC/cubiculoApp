@@ -13,6 +13,10 @@ import {
   ScrollView,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
+import type {
+  AdminHomeNavigationProp,
+  RegisterSaleRouteProp,
+} from "../../../navigation/types";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { productsService } from "../../../services/productsService";
@@ -24,12 +28,10 @@ import { extractApiErrorMessage } from "../../../utils/apiError";
 
 type CartItem = { product: Product; quantity: number };
 
-type Props = { navigation: any };
+type Props = { navigation: AdminHomeNavigationProp };
 
 export default function RegisterSaleScreen({ navigation }: Props) {
-  const routeParams = useRoute<any>().params as
-    | { preselectedStudentId?: string; preselectedProductId?: string }
-    | undefined;
+  const routeParams = useRoute<RegisterSaleRouteProp>().params;
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);

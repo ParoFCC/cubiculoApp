@@ -11,14 +11,18 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import type {
+  AuthNavigationProp,
+  VerifyEmailRouteProp,
+} from "../../navigation/types";
 import { authService } from "../../services/authService";
 import { storage } from "../../utils/storage";
 import { useAuthStore } from "../../store/useAuthStore";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
 export default function VerifyEmailScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const navigation = useNavigation<AuthNavigationProp>();
+  const route = useRoute<VerifyEmailRouteProp>();
   const { name, email, password, student_id, period } = route.params;
 
   const [code, setCode] = React.useState(["", "", "", "", "", ""]);

@@ -11,6 +11,10 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import type {
+  AdminHomeNavigationProp,
+  ReceiptRouteProp,
+} from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { generatePDF } from "react-native-html-to-pdf";
@@ -171,8 +175,8 @@ function makePDFHtml(params: ReceiptParams, dateStr: string): string {
 }
 
 export default function ReceiptScreen() {
-  const navigation = useNavigation<any>();
-  const params = useRoute<any>().params as ReceiptParams;
+  const navigation = useNavigation<AdminHomeNavigationProp>();
+  const params = useRoute<ReceiptRouteProp>().params;
   const cfg = CONFIGS[params.type];
   const now = new Date();
   const dateStr = format(now, "d 'de' MMMM yyyy, HH:mm", { locale: es });

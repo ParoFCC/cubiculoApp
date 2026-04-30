@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useNavigation } from "@react-navigation/native";
+import type { AdminHomeNavigationProp } from "../../../navigation/types";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import DocumentPicker from "react-native-document-picker";
@@ -38,7 +39,7 @@ interface GameForm {
 }
 
 export default function InventoryScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminHomeNavigationProp>();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

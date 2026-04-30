@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
+import type { AdminHomeNavigationProp } from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -204,7 +205,7 @@ function CriticalCard({
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminHomeNavigationProp>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const cubiculo = useCubiculoStore((s) => s.selectedCubiculo);
@@ -435,7 +436,10 @@ export default function DashboardScreen() {
 
   const handleSearchResultPress = (result: SearchResult) => {
     if (result.kind === "game") {
-      navigation.navigate("RegisterLoan", { preselectedGame: result.payload });
+      // SearchGameResult is a subset of Game — safe to cast for navigation
+      navigation.navigate("RegisterLoan", {
+        preselectedGame: result.payload as any,
+      });
       return;
     }
     if (result.kind === "product") {
@@ -581,7 +585,7 @@ export default function DashboardScreen() {
 
       <QuickActionsGrid
         cards={filteredQuickCards}
-        onNavigate={(screen) => navigation.navigate(screen)}
+        onNavigate={(screen) => (navigation as any).navigate(screen)}
       />
 
       <MetricsGrid loading={loading} cards={metricCards} />
@@ -653,7 +657,8 @@ export default function DashboardScreen() {
                             style={styles.searchActionBtn}
                             onPress={() =>
                               navigation.navigate("RegisterLoan", {
-                                preselectedStudentId: result.payload.student_id,
+                                preselectedStudentId:
+                                  result.payload.student_id ?? undefined,
                               })
                             }
                           >
@@ -667,7 +672,8 @@ export default function DashboardScreen() {
                             style={styles.searchActionBtn}
                             onPress={() =>
                               navigation.navigate("RegisterPrint", {
-                                preselectedStudentId: result.payload.student_id,
+                                preselectedStudentId:
+                                  result.payload.student_id ?? undefined,
                               })
                             }
                           >
@@ -679,19 +685,16 @@ export default function DashboardScreen() {
                         {productsOn && (
                           <TouchableOpacity
                             style={styles.searchActionBtn}
-                            onPress={() =>
-                              navigation.navigate(
-                                cashStatus?.status === "open"
-                                  ? "RegisterSale"
-                                  : "CashRegister",
-                                cashStatus?.status === "open"
-                                  ? {
-                                      preselectedStudentId:
-                                        result.payload.student_id,
-                                    }
-                                  : undefined,
-                              )
-                            }
+                            onPress={() => {
+                              if (cashStatus?.status === "open") {
+                                navigation.navigate("RegisterSale", {
+                                  preselectedStudentId:
+                                    result.payload.student_id ?? undefined,
+                                });
+                              } else {
+                                navigation.navigate("CashRegister");
+                              }
+                            }}
                           >
                             <Text style={styles.searchActionText}>
                               {cashStatus?.status === "open" ? "Venta" : "Caja"}

@@ -17,9 +17,19 @@ import PrintHistoryScreen from "../screens/student/printing/PrintHistoryScreen";
 
 // Screens — Products
 import ProductCatalogScreen from "../screens/student/products/ProductCatalogScreen";
+import type {
+  StudentGamesStackParamList,
+  StudentPrintingStackParamList,
+  StudentProductsStackParamList,
+} from "./types";
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+
+const GamesStackNav = createNativeStackNavigator<StudentGamesStackParamList>();
+const PrintingStackNav =
+  createNativeStackNavigator<StudentPrintingStackParamList>();
+const ProductsStackNav =
+  createNativeStackNavigator<StudentProductsStackParamList>();
 
 const PURPLE = "#5C35D9";
 
@@ -66,52 +76,52 @@ const sharedScreenOptions = {
 
 function GamesStack() {
   return (
-    <Stack.Navigator screenOptions={sharedScreenOptions}>
-      <Stack.Screen
+    <GamesStackNav.Navigator screenOptions={sharedScreenOptions}>
+      <GamesStackNav.Screen
         name="GameCatalog"
         component={GameCatalogScreen}
         options={{ title: "Juegos" }}
       />
-      <Stack.Screen
+      <GamesStackNav.Screen
         name="GameDetail"
         component={GameDetailScreen}
         options={{ title: "Detalle" }}
       />
-      <Stack.Screen
+      <GamesStackNav.Screen
         name="RequestLoan"
         component={RequestLoanScreen}
         options={{ title: "Solicitar Préstamo" }}
       />
-    </Stack.Navigator>
+    </GamesStackNav.Navigator>
   );
 }
 
 function PrintingStack() {
   return (
-    <Stack.Navigator screenOptions={sharedScreenOptions}>
-      <Stack.Screen
+    <PrintingStackNav.Navigator screenOptions={sharedScreenOptions}>
+      <PrintingStackNav.Screen
         name="PrintBalance"
         component={PrintBalanceScreen}
         options={{ title: "Mis Impresiones" }}
       />
-      <Stack.Screen
+      <PrintingStackNav.Screen
         name="PrintHistory"
         component={PrintHistoryScreen}
         options={{ title: "Historial" }}
       />
-    </Stack.Navigator>
+    </PrintingStackNav.Navigator>
   );
 }
 
 function ProductsStack() {
   return (
-    <Stack.Navigator screenOptions={sharedScreenOptions}>
-      <Stack.Screen
+    <ProductsStackNav.Navigator screenOptions={sharedScreenOptions}>
+      <ProductsStackNav.Screen
         name="ProductCatalog"
         component={ProductCatalogScreen}
         options={{ title: "Tienda" }}
       />
-    </Stack.Navigator>
+    </ProductsStackNav.Navigator>
   );
 }
 

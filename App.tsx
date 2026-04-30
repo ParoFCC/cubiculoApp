@@ -4,6 +4,7 @@ import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
 import Toast from "react-native-toast-message";
 import RootNavigator from "./src/navigation/index";
 import toastConfig from "./src/components/ToastConfig";
+import { OfflineBanner } from "./src/components/common/OfflineBanner";
 
 const theme = {
   ...MD3LightTheme,
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
+        <OfflineBanner />
         <RootNavigator />
         <Toast config={toastConfig} position="top" topOffset={60} />
       </PaperProvider>

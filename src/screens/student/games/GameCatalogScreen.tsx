@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import type { StudentGamesNavigationProp } from "../../../navigation/types";
 import Toast from "react-native-toast-message";
 import { gamesService } from "../../../services/gamesService";
 import { Game } from "../../../types/games.types";
@@ -30,7 +31,7 @@ const PALETTES: Array<[string, string]> = [
 type AvailFilter = "all" | "available" | "unavailable";
 
 export default function GameCatalogScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<StudentGamesNavigationProp>();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

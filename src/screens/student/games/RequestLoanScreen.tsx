@@ -9,13 +9,16 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import type {
+  StudentGamesNavigationProp,
+  RequestLoanRouteProp,
+} from "../../../navigation/types";
 import { gamesService } from "../../../services/gamesService";
-import { Game } from "../../../types/games.types";
 import { extractApiErrorMessage } from "../../../utils/apiError";
 
 export default function RequestLoanScreen() {
-  const navigation = useNavigation<any>();
-  const { game } = useRoute<any>().params as { game: Game };
+  const navigation = useNavigation<StudentGamesNavigationProp>();
+  const { game } = useRoute<RequestLoanRouteProp>().params;
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 

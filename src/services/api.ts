@@ -5,12 +5,12 @@ import axios, {
 } from "axios";
 import { storage } from "../utils/storage";
 
-// Android emulator reaches the host machine via 10.0.2.2; iOS simulator uses localhost
+// Use API_URL env var if set (react-native-config / .env).
+// Falls back to production URL in all builds since the backend is hosted remotely.
+// To point at a local backend on the Android emulator set API_URL=http://10.0.2.2:8000
+// in a .env file (requires react-native-config).
 const BASE_URL =
-  process.env.API_URL ??
-  (typeof __DEV__ !== "undefined" && __DEV__
-    ? "http://10.0.2.2:8000"
-    : "http://146.190.119.145:8085");
+  process.env.API_URL ?? "https://cubiculo-api.castelancarpinteyro.com";
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -57,9 +57,30 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    // Clear offline flag on successful response
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { useNetworkStore } = require("../store/useNetworkStore");
+      useNetworkStore.getState().setOffline(false);
+    } catch {
+      /* ignore */
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+
+    // Network error (no response) → show offline banner
+    if (!error.response) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useNetworkStore } = require("../store/useNetworkStore");
+        useNetworkStore.getState().setOffline(true);
+      } catch {
+        /* ignore */
+      }
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Never try to refresh for auth endpoints themselves

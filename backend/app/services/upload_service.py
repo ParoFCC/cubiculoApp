@@ -1,6 +1,7 @@
 """
 Cloudinary upload service.
 Reads CLOUDINARY_URL from settings (format: cloudinary://api_key:api_secret@cloud_name).
+Call configure_cloudinary() once at application startup (lifespan).
 """
 import os
 from urllib.parse import urlparse
@@ -10,7 +11,8 @@ import cloudinary.uploader
 from app.core.config import settings
 
 
-def _configure() -> None:
+def configure_cloudinary() -> None:
+    """Configure the Cloudinary SDK once at startup."""
     url = settings.CLOUDINARY_URL
     if not url:
         raise ValueError("CLOUDINARY_URL not configured")
@@ -38,17 +40,15 @@ def upload_file(file_bytes: bytes, filename: str, folder: str = "cubiculoapp") -
     """
     Upload a file to Cloudinary and return the secure URL.
     Supports images, videos, PDFs and raw documents.
+    configure_cloudinary() must have been called at startup.
     """
-    _configure()
-
-    # Determine resource type: image, video, or raw (PDFs, docs, etc.)
     lower = filename.lower()
     if any(lower.endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg")):
         resource_type = "image"
     elif any(lower.endswith(ext) for ext in (".mp4", ".mov", ".avi", ".webm", ".mkv")):
         resource_type = "video"
     else:
-        resource_type = "raw"  # PDFs, Word docs, etc.
+        resource_type = "raw"
 
     result = cloudinary.uploader.upload(
         file_bytes,

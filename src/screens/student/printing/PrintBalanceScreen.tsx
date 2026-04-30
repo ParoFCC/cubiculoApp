@@ -10,11 +10,12 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
+import type { StudentPrintingNavigationProp } from "../../../navigation/types";
 import { printingService } from "../../../services/printingService";
 import { PrintBalance } from "../../../types/printing.types";
 
 export default function PrintBalanceScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<StudentPrintingNavigationProp>();
   const [balance, setBalance] = useState<PrintBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -142,7 +143,8 @@ export default function PrintBalanceScreen() {
         <Text style={styles.infoBody}>
           Cada período tienes{" "}
           <Text style={styles.bold}>10 impresiones gratuitas</Text>. Al
-          agotarlas, cada página adicional tiene un costo según el tipo de impresión.
+          agotarlas, cada página adicional tiene un costo según el tipo de
+          impresión.
         </Text>
       </View>
     </ScrollView>

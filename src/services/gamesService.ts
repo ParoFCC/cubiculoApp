@@ -30,7 +30,10 @@ export const gamesService = {
 
   updateGame: (
     id: string,
-    data: Partial<Game> & { instructions_url?: string | null; image_url?: string | null },
+    data: Partial<Game> & {
+      instructions_url?: string | null;
+      image_url?: string | null;
+    },
   ): Promise<Game> =>
     api.patch<Game>(`/games/${id}`, data).then((r) => {
       invalidateCache(GAMES_CACHE_KEY);
@@ -44,6 +47,11 @@ export const gamesService = {
 
   getLoanHistory: (): Promise<GameLoan[]> =>
     api.get<GameLoan[]>("/games/loans").then((r) => r.data),
+
+  exportLoansCSV: (): Promise<string> =>
+    api
+      .get("/games/loans/export/csv", { responseType: "text" })
+      .then((r) => r.data as string),
 
   registerLoan: (
     studentId: string,

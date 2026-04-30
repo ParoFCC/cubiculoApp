@@ -102,6 +102,16 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="La contraseña debe tener al menos 8 caracteres",
         )
+    if not re.search(r'[0-9]', payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La contraseña debe contener al menos un número",
+        )
+    if not re.search(r'[A-Z]', payload.password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La contraseña debe contener al menos una letra mayúscula",
+        )
 
     # Invalidate previous codes for this email
     await db.execute(delete(EmailVerification).where(EmailVerification.email == email))
@@ -353,6 +363,16 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="La contraseña debe tener al menos 8 caracteres",
+        )
+    if not re.search(r'[0-9]', payload.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La contraseña debe contener al menos un número",
+        )
+    if not re.search(r'[A-Z]', payload.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La contraseña debe contener al menos una letra mayúscula",
         )
 
     verification = (

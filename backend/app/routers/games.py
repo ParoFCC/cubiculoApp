@@ -1,5 +1,8 @@
 import uuid
+import csv
+import io
 from fastapi import APIRouter, Body, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -37,6 +40,43 @@ async def list_loans(
 ):
     loans = await svc.list_loans(db, cubiculo_id, skip=skip, limit=limit)
     return [LoanOut.from_orm_with_names(item) for item in loans]
+
+
+@router.get("/loans/export/csv", dependencies=[Depends(require_admin)])
+async def export_loans_csv(
+    db: AsyncSession = Depends(get_db),
+    cubiculo_id: uuid.UUID = Depends(get_cubiculo_id),
+):
+    """Export all loan history as a CSV file."""
+    loans = await svc.list_loans(db, cubiculo_id, skip=0, limit=10_000)
+    loan_outs = [LoanOut.from_orm_with_names(l) for l in loans]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "juego", "estudiante", "matricula", "admin",
+        "estado", "piezas_completas", "prestado_en", "devuelto_en", "notas",
+    ])
+    for l in loan_outs:
+        writer.writerow([
+            str(l.id),
+            l.game_name or "",
+            l.student_name or "",
+            l.student_identifier or "",
+            l.admin_name or "",
+            l.status,
+            "sí" if l.pieces_complete else "no",
+            l.borrowed_at.strftime("%Y-%m-%d %H:%M") if l.borrowed_at else "",
+            l.returned_at.strftime("%Y-%m-%d %H:%M") if l.returned_at else "",
+            l.notes or "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=prestamos.csv"},
+    )
 
 
 @router.get("/{game_id}", response_model=GameOut)

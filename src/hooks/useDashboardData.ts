@@ -126,7 +126,10 @@ export function useDashboardData({
   useFocusEffect(
     useCallback(() => {
       loadDashboard();
+      // Auto-refresh every 30 s while screen is focused
+      const interval = setInterval(() => loadDashboard(), 30_000);
       return () => {
+        clearInterval(interval);
         abortRef.current?.abort();
       };
     }, [loadDashboard]),

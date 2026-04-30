@@ -11,7 +11,10 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Game } from "../../../types/games.types";
+import type {
+  StudentGamesNavigationProp,
+  GameDetailRouteProp,
+} from "../../../navigation/types";
 
 const PURPLE = "#5C35D9";
 const PURPLE_LIGHT = "#EEE9FF";
@@ -74,8 +77,8 @@ function MediaResource({ url }: { url: string }) {
 }
 
 export default function GameDetailScreen() {
-  const navigation = useNavigation<any>();
-  const { game } = useRoute<any>().params as { game: Game };
+  const navigation = useNavigation<StudentGamesNavigationProp>();
+  const { game } = useRoute<GameDetailRouteProp>().params;
 
   const handleRequest = () => {
     if (game.quantity_avail <= 0) {

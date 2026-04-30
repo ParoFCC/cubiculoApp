@@ -9,7 +9,7 @@ import { storage } from "../utils/storage";
 // Falls back to production URL in all builds since the backend is hosted remotely.
 // To point at a local backend on the Android emulator set API_URL=http://10.0.2.2:8000
 // in a .env file (requires react-native-config).
-const BASE_URL =
+export const BASE_URL: string =
   process.env.API_URL ?? "https://cubiculo-api.castelancarpinteyro.com";
 
 const api: AxiosInstance = axios.create({

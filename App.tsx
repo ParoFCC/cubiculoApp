@@ -5,6 +5,7 @@ import Toast from "react-native-toast-message";
 import RootNavigator from "./src/navigation/index";
 import toastConfig from "./src/components/ToastConfig";
 import { OfflineBanner } from "./src/components/common/OfflineBanner";
+import { ApiUrlBanner } from "./src/components/common/ApiUrlBanner";
 
 const theme = {
   ...MD3LightTheme,
@@ -20,6 +21,7 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <OfflineBanner />
+        <ApiUrlBanner />
         <RootNavigator />
         <Toast config={toastConfig} position="top" topOffset={60} />
       </PaperProvider>

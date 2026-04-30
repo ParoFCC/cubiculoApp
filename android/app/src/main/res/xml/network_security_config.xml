@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-  <!-- Allow HTTP cleartext only to the backend IP (release APK). -->
+  <!--
+    All production traffic uses HTTPS (cubiculo-api.castelancarpinteyro.com).
+    Cleartext HTTP is only allowed to localhost / 10.0.2.2 so Metro bundler
+    works in the Android emulator during development.
+  -->
   <domain-config cleartextTrafficPermitted="true">
-    <domain includeSubdomains="false">146.190.119.145</domain>
+    <domain includeSubdomains="false">localhost</domain>
+    <domain includeSubdomains="false">10.0.2.2</domain>
   </domain-config>
+  <base-config cleartextTrafficPermitted="false" />
 </network-security-config>
 

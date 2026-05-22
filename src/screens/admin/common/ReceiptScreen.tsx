@@ -17,7 +17,7 @@ import type {
 } from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { generatePDF } from "react-native-html-to-pdf";
+import RNHTMLtoPDF from "react-native-html-to-pdf";
 import Toast from "react-native-toast-message";
 
 export type ReceiptParams =
@@ -25,6 +25,7 @@ export type ReceiptParams =
       type: "loan";
       studentId: string;
       studentName?: string;
+      adminName?: string;
       gameName: string;
       piecesComplete: boolean;
       dueAt?: string;
@@ -33,6 +34,7 @@ export type ReceiptParams =
       type: "print";
       studentId: string;
       studentName?: string;
+      adminName?: string;
       pages: number;
       cost: number;
       printType: "free" | "paid";
@@ -41,6 +43,7 @@ export type ReceiptParams =
       type: "sale";
       studentId?: string;
       studentName?: string;
+      adminName?: string;
       items: Array<{ name: string; quantity: number; price: number }>;
       total: number;
       paymentMethod?: "cash" | "card";
@@ -77,13 +80,14 @@ function makeShareText(params: ReceiptParams, dateStr: string): string {
   const who = params.studentName
     ? `${params.studentName} (${params.studentId})`
     : params.studentId ?? "Sin matrícula";
+  const adminLine = params.adminName ? `\nAtendido por: ${params.adminName}` : "";
 
   if (params.type === "loan") {
     const due = params.dueAt
       ? format(new Date(params.dueAt), "d MMM yyyy HH:mm", { locale: es })
       : "Sin fecha límite";
     const pieces = params.piecesComplete ? "Completo" : "Incompleto";
-    return `📋 Recibo de Préstamo\n\nJuego: ${params.gameName}\nEstudiante: ${who}\nPiezas: ${pieces}\nDevolución máxima: ${due}\nFecha: ${dateStr}`;
+    return `📋 Recibo de Préstamo\n\nJuego: ${params.gameName}\nEstudiante: ${who}\nPiezas: ${pieces}\nDevolución máxima: ${due}${adminLine}\nFecha: ${dateStr}`;
   }
   if (params.type === "print") {
     const costStr =
@@ -92,7 +96,7 @@ function makeShareText(params: ReceiptParams, dateStr: string): string {
       params.pages
     }\nTipo: ${
       params.printType === "free" ? "Gratuita" : "Pagada"
-    }\nCosto: ${costStr}\nFecha: ${dateStr}`;
+    }\nCosto: ${costStr}${adminLine}\nFecha: ${dateStr}`;
   }
   const lines = params.items
     .map(
@@ -114,7 +118,7 @@ function makeShareText(params: ReceiptParams, dateStr: string): string {
       : "";
   return `📋 Recibo de Venta\n${whoStr}\n\nProductos:\n${lines}\n\nSubtotal: $${params.total.toFixed(
     2,
-  )}${payLine}\nFecha: ${dateStr}`;
+  )}${payLine}${adminLine}\nFecha: ${dateStr}`;
 }
 
 function makePDFHtml(params: ReceiptParams, dateStr: string): string {
@@ -169,9 +173,12 @@ function makePDFHtml(params: ReceiptParams, dateStr: string): string {
     who !== "Sin matrícula"
       ? `<tr><td>Estudiante</td><td>${who}</td></tr>`
       : "";
+  const adminRow = params.adminName
+    ? `<tr><td>Atendido por</td><td>${params.adminName}</td></tr>`
+    : "";
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;padding:32px;color:#1a1a2e;max-width:480px;margin:0 auto}h1{color:${accent};border-bottom:2px solid ${accent};padding-bottom:8px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}td{padding:10px 8px;border-bottom:1px solid #f0f0f0}td:first-child{color:#666;width:45%}.footer{margin-top:24px;font-size:11px;color:#9ca3af;text-align:center}</style></head><body><h1>Recibo de ${
     titleMap[params.type]
-  }</h1><p style="color:#888;font-size:13px">${dateStr}</p><table>${whoRow}${rows}</table><p class="footer">CubiculoApp · BUAP</p></body></html>`;
+  }</h1><p style="color:#888;font-size:13px">${dateStr}</p><table>${whoRow}${rows}${adminRow}</table><p class="footer">CubiculoApp · BUAP</p></body></html>`;
 }
 
 export default function ReceiptScreen() {
@@ -199,7 +206,7 @@ export default function ReceiptScreen() {
           : params.type === "print"
           ? "impresion"
           : "venta";
-      const file = await generatePDF({
+      const file = await RNHTMLtoPDF.convert({
         html: makePDFHtml(params, dateStr),
         fileName: `recibo_${typeKey}_${now
           .toISOString()
@@ -261,6 +268,15 @@ export default function ReceiptScreen() {
                   : params.studentId!
               }
               color={cfg.accentColor}
+            />
+          )}
+
+          {params.adminName && (
+            <Row
+              icon="account-tie-outline"
+              label="Atendido por"
+              value={params.adminName}
+              color="#6b7280"
             />
           )}
 

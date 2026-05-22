@@ -13,7 +13,7 @@ import {
 import { productsService } from "../../../services/productsService";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sale } from "../../../types/products.types";
-import { generatePDF } from "react-native-html-to-pdf";
+import RNHTMLtoPDF from "react-native-html-to-pdf";
 import Toast from "react-native-toast-message";
 
 type Period = "today" | "week" | "month" | "all";
@@ -164,7 +164,7 @@ export default function SalesReportScreen() {
       }</span>Ventas</div><div class="stat"><span>${totalItems}</span>Artículos</div><div class="stat"><span>$${totalRevenue.toFixed(
         2,
       )}</span>Ingresos</div></div><table><thead><tr><th>Fecha/Hora</th><th>Matrícula</th><th>Productos</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
-      const file = await generatePDF({
+      const file = await RNHTMLtoPDF.convert({
         html,
         fileName: `reporte_ventas_${now.toISOString().split("T")[0]}`,
         directory: "Documents",

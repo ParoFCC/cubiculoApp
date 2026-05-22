@@ -29,6 +29,7 @@ import { User } from "../../../types/auth.types";
 import QRScannerModal from "../../../components/QRScannerModal";
 import IDScannerModal from "../../../components/IDScannerModal";
 import { extractApiErrorMessage } from "../../../utils/apiError";
+import { useAuthStore } from "../../../store/useAuthStore";
 
 export default function RegisterLoanScreen() {
   const navigation = useNavigation<AdminHomeNavigationProp>();
@@ -48,6 +49,7 @@ export default function RegisterLoanScreen() {
   const [loadingGames, setLoadingGames] = useState(true);
   const [piecesComplete, setPiecesComplete] = useState(true);
   const [adminIsOut, setAdminIsOut] = useState(false);
+  const currentUser = useAuthStore((s) => s.user);
 
   const loadGames = useCallback(() => {
     Promise.all([
@@ -141,6 +143,7 @@ export default function RegisterLoanScreen() {
         type: "loan",
         studentId: studentId.trim(),
         studentName: studentInfo?.name,
+        adminName: currentUser?.name,
         gameName: selectedGame.name,
         piecesComplete,
         dueAt: loan.due_at,

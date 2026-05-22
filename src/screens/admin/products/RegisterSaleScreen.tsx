@@ -25,6 +25,7 @@ import { attendanceService } from "../../../services/attendanceService";
 import { Product, CashRegister } from "../../../types/products.types";
 import { User } from "../../../types/auth.types";
 import { extractApiErrorMessage } from "../../../utils/apiError";
+import { useAuthStore } from "../../../store/useAuthStore";
 
 type CartItem = { product: Product; quantity: number };
 
@@ -32,6 +33,7 @@ type Props = { navigation: AdminHomeNavigationProp };
 
 export default function RegisterSaleScreen({ navigation }: Props) {
   const routeParams = useRoute<RegisterSaleRouteProp>().params;
+  const currentUser = useAuthStore((s) => s.user);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,6 +205,7 @@ export default function RegisterSaleScreen({ navigation }: Props) {
         type: "sale",
         studentId: saleStudentId,
         studentName: saleStudentName,
+        adminName: currentUser?.name,
         items: saleItems,
         total: saleTotal,
         paymentMethod: salePaymentMethod,

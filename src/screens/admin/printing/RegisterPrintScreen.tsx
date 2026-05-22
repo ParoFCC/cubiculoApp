@@ -21,6 +21,7 @@ import { printingService } from "../../../services/printingService";
 import { usersService } from "../../../services/usersService";
 import { User } from "../../../types/auth.types";
 import { extractApiErrorMessage } from "../../../utils/apiError";
+import { useAuthStore } from "../../../store/useAuthStore";
 import { PrintBalance } from "../../../types/printing.types";
 import QRScannerModal from "../../../components/QRScannerModal";
 import IDScannerModal from "../../../components/IDScannerModal";
@@ -47,6 +48,7 @@ export default function RegisterPrintScreen() {
   const [showQR, setShowQR] = useState(false);
   const [showIDScanner, setShowIDScanner] = useState(false);
   const [kind, setKind] = useState<PrintKind>("bw");
+  const currentUser = useAuthStore((s) => s.user);
 
   const lookupStudent = async (id: string) => {
     const normalizedId = id.trim().toLowerCase();
@@ -135,6 +137,7 @@ export default function RegisterPrintScreen() {
         type: "print",
         studentId: registeredStudentId,
         studentName: studentInfo?.name,
+        adminName: currentUser?.name,
         pages: result.pages,
         cost: result.cost,
         printType: result.type,

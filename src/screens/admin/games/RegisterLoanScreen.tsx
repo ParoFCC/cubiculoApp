@@ -167,208 +167,217 @@ export default function RegisterLoanScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.sectionLabel}>ID del Estudiante</Text>
-      {/* Input row + QR button */}
-      <View style={styles.inputRow}>
-        <TextInput
-          style={[styles.input, styles.inputFlex]}
-          value={studentId}
-          onChangeText={(v) => {
-            const digits = v.replace(/\D/g, "").slice(0, 9);
-            setStudentId(digits);
-            setStudentInfo(null);
-            setHasLookupResult(false);
-          }}
-          onBlur={() => lookupStudent(studentId)}
-          placeholder="Ej: 202312345"
-          placeholderTextColor="#aaa"
-          keyboardType="number-pad"
-          maxLength={9}
-          autoCapitalize="none"
-        />
-        <TouchableOpacity style={styles.qrBtn} onPress={() => setShowQR(true)}>
-          <MaterialCommunityIcons name="qrcode-scan" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.qrBtn, { backgroundColor: "#059669" }]}
-          onPress={() => setShowIDScanner(true)}
-        >
-          <MaterialCommunityIcons
-            name="card-account-details-outline"
-            size={22}
-            color="#fff"
+        <Text style={styles.sectionLabel}>ID del Estudiante</Text>
+        {/* Input row + QR button */}
+        <View style={styles.inputRow}>
+          <TextInput
+            style={[styles.input, styles.inputFlex]}
+            value={studentId}
+            onChangeText={(v) => {
+              const digits = v.replace(/\D/g, "").slice(0, 9);
+              setStudentId(digits);
+              setStudentInfo(null);
+              setHasLookupResult(false);
+            }}
+            onBlur={() => lookupStudent(studentId)}
+            placeholder="Ej: 202312345"
+            placeholderTextColor="#aaa"
+            keyboardType="number-pad"
+            maxLength={9}
+            autoCapitalize="none"
           />
-        </TouchableOpacity>
-      </View>
-
-      {/* Student info preview */}
-      {lookingUp && (
-        <View style={styles.studentCard}>
-          <ActivityIndicator size="small" color={PURPLE} />
-          <Text style={styles.studentCardText}>Buscando...</Text>
-        </View>
-      )}
-      {!lookingUp && studentInfo && studentInfo.is_active && (
-        <View style={[styles.studentCard, styles.studentCardFound]}>
-          <MaterialCommunityIcons
-            name="account-check"
-            size={20}
-            color="#22C55E"
-          />
-          <View>
-            <Text style={styles.studentCardName}>{studentInfo.name}</Text>
-            <Text style={styles.studentCardSub}>{studentInfo.email}</Text>
-          </View>
-        </View>
-      )}
-      {!lookingUp && studentInfo && !studentInfo.is_active && (
-        <View style={[styles.studentCard, styles.studentCardInactive]}>
-          <MaterialCommunityIcons
-            name="account-cancel-outline"
-            size={20}
-            color="#DC2626"
-          />
-          <View>
-            <Text style={styles.studentCardName}>{studentInfo.name}</Text>
-            <Text style={styles.studentCardSub}>
-              Cuenta desactivada — no se puede registrar préstamo
-            </Text>
-          </View>
-        </View>
-      )}
-      {!lookingUp && hasLookupResult && !studentInfo && !!studentId.trim() && (
-        <View style={[styles.studentCard, styles.studentCardGuest]}>
-          <MaterialCommunityIcons
-            name="account-question"
-            size={20}
-            color="#D97706"
-          />
-          <View>
-            <Text style={styles.studentCardName}>Alumno no registrado</Text>
-            <Text style={styles.studentCardSub}>
-              Se usará la matrícula para registrar el préstamo y la devolución.
-            </Text>
-          </View>
-        </View>
-      )}
-      {!lookingUp && hasLookupResult && studentId.trim() && !studentInfo && (
-        <Text style={styles.studentNotFound}>
-          No existe un usuario con esa matrícula, pero sí puedes registrar el
-          préstamo.
-        </Text>
-      )}
-
-      <Text style={styles.sectionLabel}>Seleccionar Juego</Text>
-
-      {selectedGame && (
-        <View style={styles.selectedGameBanner}>
-          {selectedGame.image_url ? (
-            <Image
-              source={{ uri: selectedGame.image_url }}
-              style={styles.selectedGameThumb}
-            />
-          ) : (
-            <View style={styles.selectedGameThumbFallback}>
-              <MaterialCommunityIcons
-                name="dice-multiple"
-                size={16}
-                color={PURPLE}
-              />
-            </View>
-          )}
-          <Text style={styles.selectedGameBannerText}>{selectedGame.name}</Text>
-          <TouchableOpacity onPress={() => setSelectedGame(null)}>
+          <TouchableOpacity
+            style={styles.qrBtn}
+            onPress={() => setShowQR(true)}
+          >
+            <MaterialCommunityIcons name="qrcode-scan" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.qrBtn, { backgroundColor: "#059669" }]}
+            onPress={() => setShowIDScanner(true)}
+          >
             <MaterialCommunityIcons
-              name="close-circle-outline"
-              size={18}
-              color="#9ca3af"
+              name="card-account-details-outline"
+              size={22}
+              color="#fff"
             />
           </TouchableOpacity>
         </View>
-      )}
 
-      {loadingGames ? (
-        <ActivityIndicator color={PURPLE} style={{ marginVertical: 20 }} />
-      ) : (
-        games.map((game) => (
-          <TouchableOpacity
-            key={game.id}
-            style={[
-              styles.gameRow,
-              selectedGame?.id === game.id && styles.gameRowSelected,
-            ]}
-            onPress={() => setSelectedGame(game)}
-          >
-            <View style={styles.gameRowInner}>
-              {game.image_url ? (
-                <Image
-                  source={{ uri: game.image_url }}
-                  style={styles.gameThumb}
-                />
-              ) : (
-                <View style={styles.gameThumbFallback}>
-                  <MaterialCommunityIcons
-                    name="dice-multiple"
-                    size={18}
-                    color={PURPLE}
-                  />
-                </View>
-              )}
-              <View style={styles.gameRowBody}>
-                <Text
-                  style={[
-                    styles.gameRowText,
-                    selectedGame?.id === game.id && styles.gameRowTextSelected,
-                  ]}
-                >
-                  {game.name}
-                </Text>
-                <Text style={styles.avail}>
-                  {game.quantity_avail} disponibles
+        {/* Student info preview */}
+        {lookingUp && (
+          <View style={styles.studentCard}>
+            <ActivityIndicator size="small" color={PURPLE} />
+            <Text style={styles.studentCardText}>Buscando...</Text>
+          </View>
+        )}
+        {!lookingUp && studentInfo && studentInfo.is_active && (
+          <View style={[styles.studentCard, styles.studentCardFound]}>
+            <MaterialCommunityIcons
+              name="account-check"
+              size={20}
+              color="#22C55E"
+            />
+            <View>
+              <Text style={styles.studentCardName}>{studentInfo.name}</Text>
+              <Text style={styles.studentCardSub}>{studentInfo.email}</Text>
+            </View>
+          </View>
+        )}
+        {!lookingUp && studentInfo && !studentInfo.is_active && (
+          <View style={[styles.studentCard, styles.studentCardInactive]}>
+            <MaterialCommunityIcons
+              name="account-cancel-outline"
+              size={20}
+              color="#DC2626"
+            />
+            <View>
+              <Text style={styles.studentCardName}>{studentInfo.name}</Text>
+              <Text style={styles.studentCardSub}>
+                Cuenta desactivada — no se puede registrar préstamo
+              </Text>
+            </View>
+          </View>
+        )}
+        {!lookingUp &&
+          hasLookupResult &&
+          !studentInfo &&
+          !!studentId.trim() && (
+            <View style={[styles.studentCard, styles.studentCardGuest]}>
+              <MaterialCommunityIcons
+                name="account-question"
+                size={20}
+                color="#D97706"
+              />
+              <View>
+                <Text style={styles.studentCardName}>Alumno no registrado</Text>
+                <Text style={styles.studentCardSub}>
+                  Se usará la matrícula para registrar el préstamo y la
+                  devolución.
                 </Text>
               </View>
             </View>
-          </TouchableOpacity>
-        ))
-      )}
-
-      {/* Pieces complete toggle */}
-      <View style={styles.piecesRow}>
-        <View style={styles.piecesLabel}>
-          <MaterialCommunityIcons
-            name="puzzle-check-outline"
-            size={18}
-            color="#374151"
-          />
-          <Text style={styles.piecesText}>Todas las piezas completas</Text>
-        </View>
-        <Switch
-          value={piecesComplete}
-          onValueChange={setPiecesComplete}
-          trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
-          thumbColor={piecesComplete ? PURPLE : "#9ca3af"}
-        />
-      </View>
-      {!piecesComplete && (
-        <Text style={styles.piecesWarning}>
-          ⚠️ Se registrará que el juego tiene piezas faltantes.
-        </Text>
-      )}
-
-      {adminIsOut && (
-        <View style={styles.outWarning}>
-          <MaterialCommunityIcons
-            name="account-clock-outline"
-            size={18}
-            color="#92400e"
-          />
-          <Text style={styles.outWarningText}>
-            No estás registrado como presente. Registra tu entrada antes de
-            operar.
+          )}
+        {!lookingUp && hasLookupResult && studentId.trim() && !studentInfo && (
+          <Text style={styles.studentNotFound}>
+            No existe un usuario con esa matrícula, pero sí puedes registrar el
+            préstamo.
           </Text>
-        </View>
-      )}
+        )}
 
+        <Text style={styles.sectionLabel}>Seleccionar Juego</Text>
+
+        {selectedGame && (
+          <View style={styles.selectedGameBanner}>
+            {selectedGame.image_url ? (
+              <Image
+                source={{ uri: selectedGame.image_url }}
+                style={styles.selectedGameThumb}
+              />
+            ) : (
+              <View style={styles.selectedGameThumbFallback}>
+                <MaterialCommunityIcons
+                  name="dice-multiple"
+                  size={16}
+                  color={PURPLE}
+                />
+              </View>
+            )}
+            <Text style={styles.selectedGameBannerText}>
+              {selectedGame.name}
+            </Text>
+            <TouchableOpacity onPress={() => setSelectedGame(null)}>
+              <MaterialCommunityIcons
+                name="close-circle-outline"
+                size={18}
+                color="#9ca3af"
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {loadingGames ? (
+          <ActivityIndicator color={PURPLE} style={{ marginVertical: 20 }} />
+        ) : (
+          games.map((game) => (
+            <TouchableOpacity
+              key={game.id}
+              style={[
+                styles.gameRow,
+                selectedGame?.id === game.id && styles.gameRowSelected,
+              ]}
+              onPress={() => setSelectedGame(game)}
+            >
+              <View style={styles.gameRowInner}>
+                {game.image_url ? (
+                  <Image
+                    source={{ uri: game.image_url }}
+                    style={styles.gameThumb}
+                  />
+                ) : (
+                  <View style={styles.gameThumbFallback}>
+                    <MaterialCommunityIcons
+                      name="dice-multiple"
+                      size={18}
+                      color={PURPLE}
+                    />
+                  </View>
+                )}
+                <View style={styles.gameRowBody}>
+                  <Text
+                    style={[
+                      styles.gameRowText,
+                      selectedGame?.id === game.id &&
+                        styles.gameRowTextSelected,
+                    ]}
+                  >
+                    {game.name}
+                  </Text>
+                  <Text style={styles.avail}>
+                    {game.quantity_avail} disponibles
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+
+        {/* Pieces complete toggle */}
+        <View style={styles.piecesRow}>
+          <View style={styles.piecesLabel}>
+            <MaterialCommunityIcons
+              name="puzzle-check-outline"
+              size={18}
+              color="#374151"
+            />
+            <Text style={styles.piecesText}>Todas las piezas completas</Text>
+          </View>
+          <Switch
+            value={piecesComplete}
+            onValueChange={setPiecesComplete}
+            trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
+            thumbColor={piecesComplete ? PURPLE : "#9ca3af"}
+          />
+        </View>
+        {!piecesComplete && (
+          <Text style={styles.piecesWarning}>
+            ⚠️ Se registrará que el juego tiene piezas faltantes.
+          </Text>
+        )}
+
+        {adminIsOut && (
+          <View style={styles.outWarning}>
+            <MaterialCommunityIcons
+              name="account-clock-outline"
+              size={18}
+              color="#92400e"
+            />
+            <Text style={styles.outWarningText}>
+              No estás registrado como presente. Registra tu entrada antes de
+              operar.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>

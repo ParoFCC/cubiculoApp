@@ -17,7 +17,7 @@ import type {
 } from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import RNHTMLtoPDF from "react-native-html-to-pdf";
+import { generatePDF } from "react-native-html-to-pdf";
 import Toast from "react-native-toast-message";
 
 export type ReceiptParams =
@@ -208,7 +208,7 @@ export default function ReceiptScreen() {
           : params.type === "print"
           ? "impresion"
           : "venta";
-      const file = await RNHTMLtoPDF.convert({
+      const file = await generatePDF({
         html: makePDFHtml(params, dateStr),
         fileName: `recibo_${typeKey}_${now
           .toISOString()

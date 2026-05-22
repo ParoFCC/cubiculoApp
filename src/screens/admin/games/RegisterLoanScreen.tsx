@@ -342,6 +342,22 @@ export default function RegisterLoanScreen() {
           ))
         )}
 
+        {adminIsOut && (
+          <View style={styles.outWarning}>
+            <MaterialCommunityIcons
+              name="account-clock-outline"
+              size={18}
+              color="#92400e"
+            />
+            <Text style={styles.outWarningText}>
+              No estás registrado como presente. Registra tu entrada antes de
+              operar.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      <View style={styles.footer}>
         {/* Pieces complete toggle */}
         <View style={styles.piecesRow}>
           <View style={styles.piecesLabel}>
@@ -364,23 +380,6 @@ export default function RegisterLoanScreen() {
             ⚠️ Se registrará que el juego tiene piezas faltantes.
           </Text>
         )}
-
-        {adminIsOut && (
-          <View style={styles.outWarning}>
-            <MaterialCommunityIcons
-              name="account-clock-outline"
-              size={18}
-              color="#92400e"
-            />
-            <Text style={styles.outWarningText}>
-              No estás registrado como presente. Registra tu entrada antes de
-              operar.
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={styles.footer}>
         <TouchableOpacity
           style={[
             styles.btn,
@@ -542,7 +541,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginTop: 20,
+    marginBottom: 10,
     elevation: 1,
   },
   piecesLabel: { flexDirection: "row", alignItems: "center", gap: 8 },

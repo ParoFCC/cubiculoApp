@@ -80,7 +80,9 @@ function makeShareText(params: ReceiptParams, dateStr: string): string {
   const who = params.studentName
     ? `${params.studentName} (${params.studentId})`
     : params.studentId ?? "Sin matrícula";
-  const adminLine = params.adminName ? `\nAtendido por: ${params.adminName}` : "";
+  const adminLine = params.adminName
+    ? `\nAtendido por: ${params.adminName}`
+    : "";
 
   if (params.type === "loan") {
     const due = params.dueAt

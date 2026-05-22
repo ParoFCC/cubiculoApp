@@ -9,6 +9,8 @@ import {
   ScrollView,
   Switch,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -160,7 +162,11 @@ export default function RegisterLoanScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.sectionLabel}>ID del Estudiante</Text>
       {/* Input row + QR button */}
       <View style={styles.inputRow}>
@@ -363,21 +369,25 @@ export default function RegisterLoanScreen() {
         </View>
       )}
 
-      <TouchableOpacity
-        style={[
-          styles.btn,
-          (loading || adminIsOut || studentInfo?.is_active === false) &&
-            styles.btnDisabled,
-        ]}
-        onPress={handleRegister}
-        disabled={loading || adminIsOut || studentInfo?.is_active === false}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.btnText}>Registrar Préstamo</Text>
-        )}
-      </TouchableOpacity>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[
+            styles.btn,
+            (loading || adminIsOut || studentInfo?.is_active === false) &&
+              styles.btnDisabled,
+          ]}
+          onPress={handleRegister}
+          disabled={loading || adminIsOut || studentInfo?.is_active === false}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnText}>Registrar Préstamo</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <QRScannerModal
         visible={showQR}
@@ -389,14 +399,14 @@ export default function RegisterLoanScreen() {
         onScan={handleIDScan}
         onClose={() => setShowIDScanner(false)}
       />
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const PURPLE = "#5C35D9";
 
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: "#F8F7FF", flexGrow: 1 },
+  container: { padding: 20, backgroundColor: "#F8F7FF", paddingBottom: 8 },
   sectionLabel: {
     fontSize: 13,
     fontWeight: "700",
@@ -557,8 +567,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
-    marginTop: 24,
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  root: { flex: 1, backgroundColor: "#F8F7FF" },
+  footer: {
+    padding: 16,
+    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    backgroundColor: "#F8F7FF",
+    borderTopWidth: 1,
+    borderTopColor: "#ede9fe",
+  },
 });

@@ -7,13 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Share,
-  Platform,
 } from "react-native";
 import { productsService } from "../../../services/productsService";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sale } from "../../../types/products.types";
-import { generatePDF } from "react-native-html-to-pdf";
+import { print as rnPrint } from "react-native-print";
 import Toast from "react-native-toast-message";
 
 type Period = "today" | "week" | "month" | "all";
@@ -164,18 +162,10 @@ export default function SalesReportScreen() {
       }</span>Ventas</div><div class="stat"><span>${totalItems}</span>Artículos</div><div class="stat"><span>$${totalRevenue.toFixed(
         2,
       )}</span>Ingresos</div></div><table><thead><tr><th>Fecha/Hora</th><th>Matrícula</th><th>Productos</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
-      const file = await generatePDF({
+      await rnPrint({
         html,
-        fileName: `reporte_ventas_${now.toISOString().split("T")[0]}`,
-        directory: "Documents",
+        jobName: `Reporte de Ventas · ${PERIOD_LABELS[period]}`,
       });
-      if (file.filePath) {
-        await Share.share({
-          title: "Reporte de ventas",
-          url:
-            Platform.OS === "ios" ? file.filePath : `file://${file.filePath}`,
-        });
-      }
     } catch {
       Toast.show({
         type: "error",

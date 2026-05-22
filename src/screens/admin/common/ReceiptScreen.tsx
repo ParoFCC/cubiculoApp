@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   Share,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -17,7 +16,7 @@ import type {
 } from "../../../navigation/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { generatePDF } from "react-native-html-to-pdf";
+import { print as rnPrint } from "react-native-print";
 import Toast from "react-native-toast-message";
 
 export type ReceiptParams =
@@ -204,25 +203,14 @@ export default function ReceiptScreen() {
     try {
       const typeKey =
         params.type === "loan"
-          ? "prestamo"
+          ? "Recibo de Préstamo"
           : params.type === "print"
-          ? "impresion"
-          : "venta";
-      const file = await generatePDF({
+          ? "Recibo de Impresión"
+          : "Recibo de Venta";
+      await rnPrint({
         html: makePDFHtml(params, dateStr),
-        fileName: `recibo_${typeKey}_${now
-          .toISOString()
-          .replace(/[:.]/g, "-")
-          .slice(0, 19)}`,
-        directory: "Documents",
+        jobName: typeKey,
       });
-      if (file.filePath) {
-        await Share.share({
-          title: "Recibo",
-          url:
-            Platform.OS === "ios" ? file.filePath : `file://${file.filePath}`,
-        });
-      }
     } catch {
       Toast.show({
         type: "error",
